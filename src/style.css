@@ -304,13 +304,22 @@ main.guide-screen, .auth-screen {
    App shell — nav rail + topbar
 --------------------------------------------------------------------- */
 
-.app-shell { display: flex; min-height: 100svh; }
+.app-shell { display: flex; flex-direction: column; min-height: 100svh; }
+.shell-row { display: flex; flex: 1; }
 
+/* The outer rail stretches to match .shell-main's actual height (via flex
+   align-items:stretch on .app-shell) so the two columns' footers always end
+   at the same point — the inner wrapper is what's actually sticky/pinned
+   while scrolling, independent of that stretched outer height. */
 .nav-rail {
   width: var(--rail-width);
   flex-shrink: 0;
   background: var(--bg-rail);
   border-right: 1px solid var(--line);
+  z-index: 50;
+}
+
+.nav-rail-inner {
   display: flex;
   flex-direction: column;
   padding: 20px 14px;
@@ -318,7 +327,6 @@ main.guide-screen, .auth-screen {
   top: 0;
   height: 100svh;
   overflow-y: auto;
-  z-index: 50;
 }
 
 .nav-rail-brand {
@@ -350,20 +358,6 @@ main.guide-screen, .auth-screen {
 .nav-rail-item:hover { background: var(--bg-sunken); color: var(--ink); }
 .nav-rail-item.is-active { background: var(--accent); color: var(--accent-contrast); }
 .nav-rail-item.is-active .nav-icon { color: var(--accent-contrast); }
-.nav-rail-item--ghost { font-weight: 500; }
-
-.nav-rail-footer { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
-
-.upgrade-card {
-  background: linear-gradient(160deg, var(--gold-soft), transparent 70%);
-  border: 1px solid var(--gold);
-  border-radius: var(--radius-md);
-  padding: 14px;
-  margin-bottom: 8px;
-}
-.upgrade-icon { color: var(--gold); }
-.upgrade-title { font-weight: 700; font-size: 0.9rem; margin-top: 6px; }
-.upgrade-copy { font-size: 0.76rem; color: var(--ink-soft); margin: 4px 0 10px; }
 
 .shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
@@ -1385,10 +1379,13 @@ main.guide-screen, .auth-screen {
   .nav-rail {
     position: fixed;
     left: 0; top: 0;
+    height: 100svh;
+    overflow-y: auto;
     transform: translateX(-100%);
     box-shadow: var(--shadow-lg);
     transition: transform 0.25s ease;
   }
+  .nav-rail-inner { position: static; height: auto; overflow: visible; }
   .nav-rail.is-open { transform: translateX(0); }
   .rail-toggle-btn { display: inline-flex; }
   .rail-scrim {

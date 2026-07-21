@@ -30,14 +30,13 @@ const NAV_ITEMS = [
   { key: "news", label: "News & Insights", Icon: IconNews },
 ];
 
-const LIVE_PAGES = new Set(["research", "watchlist", "portfolio", "screener", "market", "news"]);
-
 function stub(label) {
   showToast(`${label} is coming soon.`, "info");
 }
 
-// Shell only ever mounts once App.jsx has confirmed isAuthed (signed in or
-// guest) — every page here is reachable without further gating.
+// Stock Research is free to browse; every other page requires a signed-in
+// account — clicking one while signed out opens the centered login popup
+// instead of navigating.
 export default function Shell({ auth, stockData, theme, onToggleTheme, onOpenGuide }) {
   const [railOpen, setRailOpen] = useState(false);
   const [page, setPage] = useState("research");
@@ -47,6 +46,14 @@ export default function Shell({ auth, stockData, theme, onToggleTheme, onOpenGui
   const openInResearch = (item) => {
     stockData.selectSecurity(item);
     setPage("research");
+  };
+
+  const navigateTo = (key) => {
+    if (key !== "research" && !auth.user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    setPage(key);
   };
 
   const renderPage = () => {
@@ -61,20 +68,22 @@ export default function Shell({ auth, stockData, theme, onToggleTheme, onOpenGui
 
   return (
     <div className="app-shell">
-      <NavRail railOpen={railOpen} onClose={() => setRailOpen(false)} page={page} onNavigate={setPage} />
-      <div className="shell-main">
-        <Topbar
-          auth={auth}
-          stockData={stockData}
-          theme={theme}
-          onToggleTheme={onToggleTheme}
-          onOpenGuide={onOpenGuide}
-          onOpenRail={() => setRailOpen(true)}
-          onOpenAuthModal={() => setAuthModalOpen(true)}
-        />
-        <div className="shell-content">{renderPage()}</div>
-        <SiteFooter />
+      <div className="shell-row">
+        <NavRail railOpen={railOpen} onClose={() => setRailOpen(false)} page={page} onNavigate={navigateTo} />
+        <div className="shell-main">
+          <Topbar
+            auth={auth}
+            stockData={stockData}
+            theme={theme}
+            onToggleTheme={onToggleTheme}
+            onOpenGuide={onOpenGuide}
+            onOpenRail={() => setRailOpen(true)}
+            onOpenAuthModal={() => setAuthModalOpen(true)}
+          />
+          <div className="shell-content">{renderPage()}</div>
+        </div>
       </div>
+      <SiteFooter />
       {railOpen ? <div className="rail-scrim" onClick={() => setRailOpen(false)} /> : null}
       {authModalOpen ? <AuthModal auth={auth} onClose={() => setAuthModalOpen(false)} /> : null}
     </div>
@@ -84,43 +93,43 @@ export default function Shell({ auth, stockData, theme, onToggleTheme, onOpenGui
 function NavRail({ railOpen, onClose, page, onNavigate }) {
   return (
     <nav className={`nav-rail ${railOpen ? "is-open" : ""}`} aria-label="Primary">
-      <a href="/" className="nav-rail-brand" aria-label="Stockproof home">
-        <img src="/favicon.svg" alt="" width="28" height="28" />
-        <span>Stockproof</span>
-      </a>
+      <div className="nav-rail-inner">
+        <a href="/" className="nav-rail-brand" aria-label="Stockproof home">
+          <img src="/favicon.svg" alt="" width="28" height="28" />
+          <span>Stockproof</span>
+        </a>
 
-      <ul className="nav-rail-list">
-        {NAV_ITEMS.map(({ key, label, Icon }) => {
-          const active = page === key;
-          return (
-            <li key={key}>
-              <button
-                type="button"
-                className={`nav-rail-item ${active ? "is-active" : ""}`}
-                aria-current={active ? "page" : undefined}
-                onClick={() => {
-                  onClose();
-                  if (LIVE_PAGES.has(key)) onNavigate(key);
-                  else stub(label);
-                }}
-              >
-                <Icon className="nav-icon" />
-                <span>{label}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-
-      <div className="nav-rail-footer">
-        <button
-          type="button"
-          className="nav-rail-item nav-rail-item--ghost"
-          onClick={() => window.open("https://forms.gle/z3rsKYyhjF4g4Dge7", "_blank", "noopener,noreferrer")}
-        >
-          <IconFeedback className="nav-icon" />
-          <span>Feedback</span>
-        </button>
+        <ul className="nav-rail-list">
+          {NAV_ITEMS.map(({ key, label, Icon }) => {
+            const active = page === key;
+            return (
+              <li key={key}>
+                <button
+                  type="button"
+                  className={`nav-rail-item ${active ? "is-active" : ""}`}
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => {
+                    onClose();
+                    onNavigate(key);
+                  }}
+                >
+                  <Icon className="nav-icon" />
+                  <span>{label}</span>
+                </button>
+              </li>
+            );
+          })}
+          <li>
+            <button
+              type="button"
+              className="nav-rail-item"
+              onClick={() => window.open("https://forms.gle/z3rsKYyhjF4g4Dge7", "_blank", "noopener,noreferrer")}
+            >
+              <IconFeedback className="nav-icon" />
+              <span>Feedback</span>
+            </button>
+          </li>
+        </ul>
       </div>
     </nav>
   );
@@ -158,16 +167,21 @@ function Topbar({ auth, stockData, theme, onToggleTheme, onOpenGuide, onOpenRail
         >
           <span aria-hidden="true" className="theme-icon">{theme === "dark" ? "◑" : "◐"}</span>
         </button>
-        <AuthMenu auth={auth} onOpenAuthModal={onOpenAuthModal} />
+        {auth.user ? (
+          <AuthMenu auth={auth} />
+        ) : (
+          <button type="button" className="btn btn-primary btn-sm" onClick={onOpenAuthModal}>
+            Login
+          </button>
+        )}
       </div>
     </header>
   );
 }
 
-function AuthMenu({ auth, onOpenAuthModal }) {
+function AuthMenu({ auth }) {
   const [open, setOpen] = useState(false);
-  const label = auth.user ? auth.user.email : "Guest";
-  const initial = (auth.user?.email || "G").trim().charAt(0).toUpperCase();
+  const initial = (auth.user?.email || "?").trim().charAt(0).toUpperCase();
 
   return (
     <div className="auth-menu">
@@ -176,17 +190,9 @@ function AuthMenu({ auth, onOpenAuthModal }) {
       </button>
       {open ? (
         <div className="auth-menu-panel" onMouseLeave={() => setOpen(false)}>
-          <p className="auth-menu-label" title={label}>{label}</p>
-          {auth.isGuest ? (
-            <>
-              <p className="auth-menu-hint">Guest mode — data stays on this device.</p>
-              <button type="button" className="btn btn-primary btn-sm btn-full" onClick={onOpenAuthModal}>
-                Sign in to sync
-              </button>
-            </>
-          ) : null}
+          <p className="auth-menu-label" title={auth.user?.email}>{auth.user?.email}</p>
           <button type="button" className="btn btn-ghost btn-sm btn-full" onClick={auth.signOut}>
-            {auth.user ? "Sign out" : "Exit guest mode"}
+            Sign out
           </button>
         </div>
       ) : null}
