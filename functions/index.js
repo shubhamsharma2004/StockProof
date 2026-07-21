@@ -1,0 +1,426 @@
+const { onRequest } = require("firebase-functions/v2/https");
+const corsLib = require("cors")({ origin: true });
+const admin = require("firebase-admin");
+
+admin.initializeApp();
+const db = admin.firestore();
+
+const REGION = "asia-south1";
+const YF_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+};
+const CRUMB_TTL_MS = 50 * 60 * 1000;
+
+let crumbCache = null; // { crumb, cookie, fetchedAt }
+
+function extractCookie(res) {
+  const setCookies = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
+  return setCookies.map((c) => c.split(";")[0]).join("; ");
+}
+
+async function getCrumbAndCookie() {
+  if (crumbCache && Date.now() - crumbCache.fetchedAt < CRUMB_TTL_MS) {
+    return crumbCache;
+  }
+
+  let cookie = "";
+  try {
+    const consentRes = await fetch("https://fc.yahoo.com", { headers: YF_HEADERS });
+    cookie = extractCookie(consentRes);
+  } catch {
+    // fc.yahoo.com occasionally errors but a crumb can sometimes still be obtained without it
+  }
+
+  const crumbRes = await fetch("https://query2.finance.yahoo.com/v1/test/getcrumb", {
+    headers: { ...YF_HEADERS, Cookie: cookie },
+  });
+  const newCookie = extractCookie(crumbRes);
+  if (newCookie) cookie = newCookie;
+  const crumb = (await crumbRes.text()).trim();
+
+  if (!crumb || crumb.toLowerCase().includes("<html")) {
+    throw new Error("Could not obtain a Yahoo Finance session crumb");
+  }
+
+  crumbCache = { crumb, cookie, fetchedAt: Date.now() };
+  return crumbCache;
+}
+
+function numField(mod, key) {
+  const v = mod?.[key];
+  if (v == null) return null;
+  if (typeof v === "number") return v;
+  if (typeof v.raw === "number") return v.raw;
+  return null;
+}
+
+function yearField(mod, key) {
+  const v = mod?.[key];
+  if (v == null) return null;
+  if (typeof v.fmt === "string" && v.fmt.length >= 4) return Number(v.fmt.slice(0, 4));
+  if (typeof v.raw === "number") return new Date(v.raw * 1000).getUTCFullYear();
+  return null;
+}
+
+// Yahoo's annual statement history arrays are typically newest-first and
+// carry a handful of years (availability varies a lot per symbol) — this
+// just normalizes to {year, ...} objects, oldest-first, dropping any year
+// missing the fields we actually chart.
+function buildIncomeHistory(result) {
+  const rows = result?.incomeStatementHistory?.incomeStatementHistory || [];
+  return rows
+    .map((row) => ({
+      year: yearField(row, "endDate"),
+      revenue_cr: numField(row, "totalRevenue") != null ? Number((numField(row, "totalRevenue") / 1e7).toFixed(2)) : null,
+      net_income_cr: numField(row, "netIncome") != null ? Number((numField(row, "netIncome") / 1e7).toFixed(2)) : null,
+    }))
+    .filter((row) => row.year && row.revenue_cr != null && row.net_income_cr != null)
+    .sort((a, b) => a.year - b.year)
+    .slice(-5);
+}
+
+function buildBalanceSheetHistory(result) {
+  const rows = result?.balanceSheetHistory?.balanceSheetHistory || [];
+  return rows
+    .map((row) => ({
+      year: yearField(row, "endDate"),
+      equity_cr: numField(row, "totalStockholderEquity") != null ? Number((numField(row, "totalStockholderEquity") / 1e7).toFixed(2)) : null,
+      liabilities_cr: numField(row, "totalLiab") != null ? Number((numField(row, "totalLiab") / 1e7).toFixed(2)) : null,
+    }))
+    .filter((row) => row.year && row.equity_cr != null)
+    .sort((a, b) => a.year - b.year)
+    .slice(-5);
+}
+
+function pctField(mod, key) {
+  const v = numField(mod, key);
+  return v != null ? Number((v * 100).toFixed(2)) : null;
+}
+
+function companyOfficerName(profile) {
+  const officers = profile?.companyOfficers;
+  if (!Array.isArray(officers) || !officers.length) return null;
+  const ceo = officers.find((o) => /\bCEO\b|Chief Executive/i.test(o?.title || "")) || officers[0];
+  return ceo?.name || null;
+}
+
+exports.stockSearch = onRequest({ region: REGION, invoker: "public" }, (req, res) => {
+  corsLib(req, res, async () => {
+    try {
+      const q = String(req.query.q || "").trim();
+      if (q.length < 2) return res.json({ results: [] });
+
+      const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(
+        q
+      )}&quotesCount=10&newsCount=0`;
+      const r = await fetch(url, { headers: YF_HEADERS });
+      if (!r.ok) throw new Error(`Yahoo search responded ${r.status}`);
+      const data = await r.json();
+
+      const results = (data.quotes || [])
+        .filter((qt) => qt.exchange === "NSI" || qt.exchange === "BSE")
+        .filter((qt) => ["EQUITY", "ETF", "MUTUALFUND"].includes(qt.quoteType))
+        .map((qt) => ({
+          symbol: qt.symbol,
+          name: qt.longname || qt.shortname || qt.symbol,
+          exchange: qt.exchange === "NSI" ? "NSE" : "BSE",
+        }));
+
+      res.set("Cache-Control", "public, max-age=60");
+      res.json({ results });
+    } catch (err) {
+      res.status(502).json({ error: err.message || "Search failed" });
+    }
+  });
+});
+
+exports.stockQuote = onRequest({ region: REGION, invoker: "public" }, (req, res) => {
+  corsLib(req, res, async () => {
+    try {
+      const symbol = String(req.query.symbol || "").trim().toUpperCase();
+      if (!symbol) return res.status(400).json({ error: "symbol is required" });
+
+      const { crumb, cookie } = await getCrumbAndCookie();
+      const modules = "price,summaryDetail,defaultKeyStatistics,assetProfile,financialData,incomeStatementHistory,balanceSheetHistory";
+      const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(
+        symbol
+      )}?modules=${modules}&crumb=${encodeURIComponent(crumb)}`;
+
+      const r = await fetch(url, { headers: { ...YF_HEADERS, Cookie: cookie } });
+      if (!r.ok) throw new Error(`Yahoo quote responded ${r.status}`);
+      const data = await r.json();
+      const result = data?.quoteSummary?.result?.[0];
+      if (!result) throw new Error("No data returned for symbol");
+
+      const price = result.price || {};
+      const summary = result.summaryDetail || {};
+      const stats = result.defaultKeyStatistics || {};
+      const profile = result.assetProfile || {};
+      const financials = result.financialData || {};
+
+      const marketCap = numField(price, "marketCap");
+      const dividendYield = numField(summary, "dividendYield");
+      const percentChange = numField(price, "regularMarketChangePercent");
+      const debtToEquityRaw = numField(financials, "debtToEquity");
+      const ebitda = numField(financials, "ebitda");
+      const totalRevenueTTM = numField(financials, "totalRevenue");
+      const city = profile.city || null;
+      const country = profile.country || null;
+      const incomeHistory = buildIncomeHistory(result);
+
+      res.set("Cache-Control", "public, max-age=15");
+      res.json({
+        // Core quote fields (unchanged shape)
+        last_price: numField(price, "regularMarketPrice"),
+        percent_change: percentChange != null ? Number((percentChange * 100).toFixed(2)) : null,
+        year_high: numField(summary, "fiftyTwoWeekHigh"),
+        year_low: numField(summary, "fiftyTwoWeekLow"),
+        volume: numField(price, "regularMarketVolume"),
+        market_cap: marketCap != null ? Number((marketCap / 1e7).toFixed(2)) : null,
+        pe_ratio: numField(summary, "trailingPE"),
+        dividend_yield: dividendYield != null ? Number((dividendYield * 100).toFixed(2)) : null,
+        book_value: numField(stats, "bookValue"),
+        earnings_per_share: numField(stats, "trailingEps"),
+        shares_outstanding: numField(stats, "sharesOutstanding"),
+        sector: profile.sector || null,
+        industry: profile.industry || null,
+
+        // Extra quote-day fields
+        day_open: numField(price, "regularMarketOpen"),
+        day_high: numField(price, "regularMarketDayHigh"),
+        day_low: numField(price, "regularMarketDayLow"),
+        prev_close: numField(price, "regularMarketPreviousClose"),
+        avg_volume: numField(summary, "averageVolume"),
+        beta: numField(stats, "beta"),
+        forward_pe: numField(summary, "forwardPE"),
+        currency: price.currency || null,
+
+        // Company profile (real fields only — no founded/ISIN, Yahoo doesn't carry those)
+        long_name: price.longName || price.shortName || null,
+        website: profile.website || null,
+        employees: numField(profile, "fullTimeEmployees"),
+        ceo: companyOfficerName(profile),
+        headquarters: city && country ? `${city}, ${country}` : city || country || null,
+
+        // Profitability / leverage ratios (real, current — Yahoo has no "industry average" endpoint)
+        return_on_equity: pctField(financials, "returnOnEquity"),
+        return_on_assets: pctField(financials, "returnOnAssets"),
+        debt_to_equity: debtToEquityRaw != null ? Number((debtToEquityRaw / 100).toFixed(2)) : null,
+        profit_margin: pctField(financials, "profitMargins"),
+        operating_margin: pctField(financials, "operatingMargins"),
+        gross_margin: pctField(financials, "grossMargins"),
+        ebitda_margin: ebitda != null && totalRevenueTTM ? Number(((ebitda / totalRevenueTTM) * 100).toFixed(2)) : null,
+        revenue_growth: pctField(financials, "revenueGrowth"),
+        earnings_growth: pctField(financials, "earningsGrowth"),
+        current_ratio: numField(financials, "currentRatio"),
+        total_cash_cr: numField(financials, "totalCash") != null ? Number((numField(financials, "totalCash") / 1e7).toFixed(2)) : null,
+        total_debt_cr: numField(financials, "totalDebt") != null ? Number((numField(financials, "totalDebt") / 1e7).toFixed(2)) : null,
+
+        // Historical annuals for trend sparklines — length varies by symbol,
+        // frontend must handle 0-5 entries gracefully.
+        revenue_history: incomeHistory.map((r) => ({ year: r.year, value_cr: r.revenue_cr })),
+        net_income_history: incomeHistory.map((r) => ({ year: r.year, value_cr: r.net_income_cr })),
+        balance_sheet_history: buildBalanceSheetHistory(result),
+      });
+    } catch (err) {
+      // A bad crumb/cookie pair throws on the next call too; drop the cache so the
+      // following request re-negotiates a fresh one instead of retrying the same one.
+      crumbCache = null;
+      res.status(502).json({ error: err.message || "Quote fetch failed" });
+    }
+  });
+});
+
+// Historical daily/weekly closes for the price chart. A distinct, more
+// public Yahoo endpoint from quoteSummary — same crumb/cookie are reused
+// defensively but this one has historically been reachable without them too.
+exports.stockChart = onRequest({ region: REGION, invoker: "public" }, (req, res) => {
+  corsLib(req, res, async () => {
+    try {
+      const symbol = String(req.query.symbol || "").trim().toUpperCase();
+      if (!symbol) return res.status(400).json({ error: "symbol is required" });
+      const allowedRanges = ["1d", "5d", "1mo", "6mo", "1y", "5y", "max"];
+      const range = allowedRanges.includes(req.query.range) ? req.query.range : "1y";
+      const interval = range === "1d" ? "5m" : range === "5d" ? "15m" : range === "1mo" ? "1d" : "1wk";
+
+      let cookie = "";
+      let crumb = "";
+      try {
+        ({ crumb, cookie } = await getCrumbAndCookie());
+      } catch {
+        // Chart endpoint sometimes works without a crumb; fall through and try anyway.
+      }
+
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
+        symbol
+      )}?range=${range}&interval=${interval}${crumb ? `&crumb=${encodeURIComponent(crumb)}` : ""}`;
+      const r = await fetch(url, { headers: { ...YF_HEADERS, Cookie: cookie } });
+      if (!r.ok) throw new Error(`Yahoo chart responded ${r.status}`);
+      const data = await r.json();
+      const result = data?.chart?.result?.[0];
+      if (!result) throw new Error("No chart data returned for symbol");
+
+      const timestamps = result.timestamp || [];
+      const closes = result.indicators?.quote?.[0]?.close || [];
+      let points = timestamps
+        .map((t, i) => ({ t: t * 1000, c: closes[i] }))
+        .filter((p) => typeof p.c === "number");
+
+      const MAX_POINTS = 300;
+      if (points.length > MAX_POINTS) {
+        const step = Math.ceil(points.length / MAX_POINTS);
+        points = points.filter((_, i) => i % step === 0);
+      }
+
+      res.set("Cache-Control", "public, max-age=60");
+      res.json({ range, points });
+    } catch (err) {
+      res.status(502).json({ error: err.message || "Chart fetch failed" });
+    }
+  });
+});
+
+// A curated pool of large/mid-cap NSE tickers spanning sectors — real
+// symbols, used to compute real Day Gainers / Day Losers / Most Active
+// among this pool. Not a full-market screener (Yahoo's unofficial API
+// doesn't expose one we can rely on for NSE), so it's presented as such
+// rather than implying full-market coverage.
+const SCREENER_POOL = [
+  "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "BHARTIARTL", "SBIN", "ITC", "LT", "HINDUNILVR",
+  "KOTAKBANK", "AXISBANK", "BAJFINANCE", "MARUTI", "SUNPHARMA", "TITAN", "ULTRACEMCO", "ASIANPAINT",
+  "NESTLEIND", "WIPRO", "HCLTECH", "ADANIENT", "ADANIPORTS", "ONGC", "NTPC", "POWERGRID", "TATASTEEL",
+  "JSWSTEEL", "TATAMOTORS", "M&M", "BAJAJFINSV", "HDFCLIFE", "SBILIFE", "DIVISLAB", "DRREDDY", "CIPLA",
+  "GRASIM", "BRITANNIA", "EICHERMOT", "HEROMOTOCO", "COALINDIA", "INDUSINDBK", "TECHM", "BPCL",
+].map((s) => `${s}.NS`);
+
+exports.screener = onRequest({ region: REGION, invoker: "public" }, (req, res) => {
+  corsLib(req, res, async () => {
+    try {
+      const { crumb, cookie } = await getCrumbAndCookie();
+      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(
+        SCREENER_POOL.join(",")
+      )}&crumb=${encodeURIComponent(crumb)}`;
+      const r = await fetch(url, { headers: { ...YF_HEADERS, Cookie: cookie } });
+      if (!r.ok) throw new Error(`Yahoo batch quote responded ${r.status}`);
+      const data = await r.json();
+      const quotes = data?.quoteResponse?.result || [];
+
+      const rows = quotes
+        .map((q) => ({
+          symbol: (q.symbol || "").replace(/\.NS$/, ""),
+          name: q.longName || q.shortName || q.symbol,
+          last_price: typeof q.regularMarketPrice === "number" ? q.regularMarketPrice : null,
+          percent_change: typeof q.regularMarketChangePercent === "number" ? Number(q.regularMarketChangePercent.toFixed(2)) : null,
+          volume: typeof q.regularMarketVolume === "number" ? q.regularMarketVolume : null,
+          market_cap: typeof q.marketCap === "number" ? Number((q.marketCap / 1e7).toFixed(2)) : null,
+          pe_ratio: typeof q.trailingPE === "number" ? Number(q.trailingPE.toFixed(2)) : null,
+        }))
+        .filter((row) => row.last_price != null);
+
+      const gainers = [...rows].filter((r) => r.percent_change != null).sort((a, b) => b.percent_change - a.percent_change).slice(0, 10);
+      const losers = [...rows].filter((r) => r.percent_change != null).sort((a, b) => a.percent_change - b.percent_change).slice(0, 10);
+      const mostActive = [...rows].filter((r) => r.volume != null).sort((a, b) => b.volume - a.volume).slice(0, 10);
+
+      res.set("Cache-Control", "public, max-age=30");
+      res.json({ asOf: new Date().toISOString(), poolSize: SCREENER_POOL.length, gainers, losers, mostActive });
+    } catch (err) {
+      crumbCache = null;
+      res.status(502).json({ error: err.message || "Screener fetch failed" });
+    }
+  });
+});
+
+// Real news via Yahoo Finance's search endpoint, keyed by ticker per
+// category. Verified behavior: when a query ticker has no genuine dedicated
+// coverage, Yahoo silently falls back to an unrelated generic/trending
+// article set (relatedTickers: null on every item) instead of an empty
+// result — so every article here is kept only if its own relatedTickers
+// actually includes the ticker we searched for. That's what keeps this feed
+// honest instead of padded with irrelevant filler.
+//
+// India coverage from NSE/BSE tickers themselves is thin in Yahoo's index,
+// so the India category also queries the US-listed ADRs of major Indian
+// companies (real, same underlying businesses) to round it out.
+const NEWS_CATEGORIES = {
+  india: ["^NSEI", "^BSESN", "INFY", "IBN", "HDB", "WIT", "INR=X"],
+  us: ["^GSPC", "^DJI", "^IXIC"],
+  europe: ["^FTSE", "^STOXX50E"],
+  japan: ["^N225"],
+  commodities: ["CL=F", "GC=F"],
+};
+
+async function fetchNewsForTicker(ticker) {
+  const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(
+    ticker
+  )}&newsCount=8&quotesCount=0`;
+  try {
+    const r = await fetch(url, { headers: YF_HEADERS });
+    if (!r.ok) return [];
+    const data = await r.json();
+    const items = data?.news || [];
+    return items
+      .filter((n) => Array.isArray(n.relatedTickers) && n.relatedTickers.includes(ticker))
+      .map((n) => ({
+        uuid: n.uuid,
+        title: n.title,
+        publisher: n.publisher || null,
+        link: n.link,
+        publishedAt: typeof n.providerPublishTime === "number" ? n.providerPublishTime * 1000 : null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+exports.marketNews = onRequest({ region: REGION, invoker: "public" }, (req, res) => {
+  corsLib(req, res, async () => {
+    try {
+      const categoryEntries = Object.entries(NEWS_CATEGORIES);
+      const results = await Promise.all(
+        categoryEntries.map(async ([category, tickers]) => {
+          const perTicker = await Promise.all(tickers.map(fetchNewsForTicker));
+          const seen = new Set();
+          const merged = [];
+          for (const list of perTicker) {
+            for (const article of list) {
+              if (seen.has(article.uuid)) continue;
+              seen.add(article.uuid);
+              merged.push(article);
+            }
+          }
+          merged.sort((a, b) => (b.publishedAt || 0) - (a.publishedAt || 0));
+          return [category, merged.slice(0, 15)];
+        })
+      );
+
+      res.set("Cache-Control", "public, max-age=300");
+      res.json({ asOf: new Date().toISOString(), categories: Object.fromEntries(results) });
+    } catch (err) {
+      res.status(502).json({ error: err.message || "News fetch failed" });
+    }
+  });
+});
+
+// Server-side counter for guest-mode entries — kept off the client so an
+// open Firestore write rule for anonymous users is never needed.
+const GUEST_COUNTER_REF = db.collection("counters").doc("guestLogins");
+
+exports.guestCounter = onRequest({ region: REGION, invoker: "public" }, (req, res) => {
+  corsLib(req, res, async () => {
+    try {
+      if (req.method === "POST") {
+        const result = await db.runTransaction(async (tx) => {
+          const doc = await tx.get(GUEST_COUNTER_REF);
+          const next = (doc.exists ? doc.data().count : 0) + 1;
+          tx.set(GUEST_COUNTER_REF, { count: next }, { merge: true });
+          return next;
+        });
+        return res.json({ count: result });
+      }
+      const doc = await GUEST_COUNTER_REF.get();
+      res.json({ count: doc.exists ? doc.data().count : 0 });
+    } catch (err) {
+      res.status(502).json({ error: err.message || "Counter request failed" });
+    }
+  });
+});
