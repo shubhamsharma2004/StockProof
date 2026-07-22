@@ -7,6 +7,7 @@ import {
   signOutUser,
 } from "../firebase.js";
 import { fetchGuestCount, incrementGuestCount } from "../api.js";
+import { showToast } from "../utils.js";
 
 const GUEST_MODE_KEY = "stockproof.guestMode";
 
@@ -63,16 +64,32 @@ export function useAuth() {
       const action = authMode === "signup" ? signUpWithEmail : signInWithEmail;
       const res = await action(email, password);
       setAuthSubmitting(false);
-      if (!res.ok) setAuthError(res.error);
+      if (res.ok) {
+        showToast(authMode === "signup" ? "Account created — you're signed in." : "Signed in successfully.", "success");
+      } else {
+        setAuthError(res.error);
+      }
     },
     [authMode]
   );
 
   const googleSignIn = useCallback(async () => {
+    // Guards against a second signInWithPopup firing while the first is
+    // still open (double-click, or a re-render re-triggering the handler) —
+    // Firebase cancels the earlier request in that case with a
+    // "cancelled-popup-request" error that looks like a real auth failure
+    // but is really just two overlapping popups.
+    if (authSubmitting) return;
     setAuthError(null);
+    setAuthSubmitting(true);
     const res = await signInWithGoogle();
-    if (!res.ok) setAuthError(res.error);
-  }, []);
+    setAuthSubmitting(false);
+    if (res.ok) {
+      showToast("Signed in successfully.", "success");
+    } else {
+      setAuthError(res.error);
+    }
+  }, [authSubmitting]);
 
   const signOut = useCallback(async () => {
     await signOutUser();

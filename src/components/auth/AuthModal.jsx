@@ -2,10 +2,15 @@ import { useEffect } from "react";
 import { IconClose } from "../icons.jsx";
 import AuthCardContent from "./AuthCardContent.jsx";
 
-// Optional, dismissible — used inside the app once a guest wants to
-// upgrade to a full account (e.g. "Sign in to sync" in the account menu).
-// The mandatory first-run gate is AuthGate, not this.
+// The centered "sign in to unlock" popup — opened from the topbar Login
+// button or from clicking a gated nav item while signed out. Closes itself
+// automatically the moment sign-in actually succeeds, in addition to the
+// explicit close button/backdrop/Escape.
 export default function AuthModal({ auth, onClose }) {
+  useEffect(() => {
+    if (auth.user) onClose();
+  }, [auth.user, onClose]);
+
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") onClose();

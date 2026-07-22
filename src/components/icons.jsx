@@ -266,6 +266,15 @@ export function IconClock(props) {
     </svg>
   );
 }
+export function IconIpo(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 2.5c2.5 2.2 4 5.6 4 9 0 2-.6 3.7-1.2 5l-2.8 3.5-2.8-3.5c-.6-1.3-1.2-3-1.2-5 0-3.4 1.5-6.8 4-9z" />
+      <circle cx="12" cy="10.5" r="1.7" />
+      <path d="M8.5 16.5L6 19M15.5 16.5L18 19" />
+    </svg>
+  );
+}
 export function IconDownload(props) {
   return (
     <svg {...base} {...props}>

@@ -59,8 +59,8 @@ function AuthForm({ auth }) {
       <div className="auth-divider" role="separator">
         <span>or</span>
       </div>
-      <button type="button" className="btn btn-google" onClick={auth.googleSignIn}>
-        <span aria-hidden="true">G</span> Continue with Google
+      <button type="button" className="btn btn-google" onClick={auth.googleSignIn} disabled={auth.authSubmitting}>
+        <span aria-hidden="true">G</span> {auth.authSubmitting ? "Please wait…" : "Continue with Google"}
       </button>
     </>
   );

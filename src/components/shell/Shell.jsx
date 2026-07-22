@@ -6,6 +6,7 @@ import {
   IconScreener,
   IconMarket,
   IconNews,
+  IconIpo,
   IconFeedback,
   IconBell,
 } from "../icons.jsx";
@@ -20,12 +21,14 @@ import PortfolioView from "../portfolio/PortfolioView.jsx";
 import ScreenerView from "../screener/ScreenerView.jsx";
 import MarketView from "../market/MarketView.jsx";
 import NewsInsightsView from "../news/NewsInsightsView.jsx";
+import IPOView from "../ipo/IPOView.jsx";
 
 const NAV_ITEMS = [
   { key: "research", label: "Stock Research", Icon: IconResearch },
   { key: "watchlist", label: "Watchlist", Icon: IconWatchlist },
   { key: "portfolio", label: "Portfolio", Icon: IconPortfolio },
   { key: "screener", label: "Screener", Icon: IconScreener },
+  { key: "ipo", label: "IPO Analysis", Icon: IconIpo },
   { key: "market", label: "Market", Icon: IconMarket },
   { key: "news", label: "News & Insights", Icon: IconNews },
 ];
@@ -61,6 +64,7 @@ export default function Shell({ auth, stockData, theme, onToggleTheme, onOpenGui
     if (page === "watchlist") return <WatchlistView watchlist={watchlist} onOpen={openInResearch} />;
     if (page === "portfolio") return <PortfolioView stockData={stockData} />;
     if (page === "screener") return <ScreenerView onOpen={openInResearch} />;
+    if (page === "ipo") return <IPOView onOpen={openInResearch} />;
     if (page === "market") return <MarketView />;
     if (page === "news") return <NewsInsightsView />;
     return null;

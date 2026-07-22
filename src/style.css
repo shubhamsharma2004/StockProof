@@ -1320,6 +1320,32 @@ main.guide-screen, .auth-screen {
 .screener-row-name { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
 .screener-row-name strong { font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+.ipo-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.ipo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: var(--bg);
+}
+.ipo-card--clickable { cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+.ipo-card--clickable:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.ipo-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ipo-card-top strong { font-size: 0.95rem; }
+.ipo-card-meta { font-size: 0.78rem; color: var(--ink-faint); margin-bottom: 8px; }
+.ipo-card-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.ipo-card-detail-grid .scenario-detail-value.is-positive { color: var(--success); }
+.ipo-card-detail-grid .scenario-detail-value.is-negative { color: var(--danger); }
+
 .portfolio-picker-card { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
 .scenario-field-label { font-size: 0.76rem; color: var(--ink-soft); font-weight: 600; }
 .portfolio-search { max-width: 100%; }

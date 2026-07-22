@@ -401,6 +401,78 @@ exports.marketNews = onRequest({ region: REGION, invoker: "public" }, (req, res)
   });
 });
 
+// NSE India's own (unofficial, undocumented) IPO API — real current data:
+// open-for-subscription issues with actual subscription counts, upcoming
+// issues, and recently listed issues with real issue prices/listing dates.
+// No crumb/session needed for these specific endpoints, unlike NSE's main
+// site. Kept as a thin passthrough — no GMP, no BSE-only/SME coverage here,
+// since neither is available from this source; the frontend shows those
+// gaps honestly rather than guessing.
+const NSE_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+  Accept: "application/json",
+};
+
+async function fetchNseJson(path) {
+  const r = await fetch(`https://www.nseindia.com/api/${path}`, { headers: NSE_HEADERS });
+  if (!r.ok) throw new Error(`NSE ${path} responded ${r.status}`);
+  return r.json();
+}
+
+exports.ipoData = onRequest({ region: REGION, invoker: "public" }, (req, res) => {
+  corsLib(req, res, async () => {
+    try {
+      const [current, upcoming, past] = await Promise.all([
+        fetchNseJson("ipo-current-issue").catch(() => []),
+        fetchNseJson("all-upcoming-issues?category=ipo").catch(() => []),
+        fetchNseJson("public-past-issues").catch(() => []),
+      ]);
+
+      const openNow = (Array.isArray(current) ? current : [])
+        .filter((row) => row.status === "Active")
+        .map((row) => ({
+          company: row.companyName,
+          symbol: row.symbol,
+          exchange: row.isBse === "1" ? "BSE" : "NSE",
+          series: row.series || null,
+          priceBand: row.issuePrice || null,
+          startDate: row.issueStartDate || null,
+          endDate: row.issueEndDate || null,
+          subscriptionTimes: row.noOfTime != null ? Number(row.noOfTime) : null,
+        }));
+
+      const upcomingList = (Array.isArray(upcoming) ? upcoming : []).map((row) => ({
+        company: row.companyName,
+        symbol: row.symbol,
+        series: row.series || null,
+        priceBand: row.issuePrice || null,
+        startDate: row.issueStartDate || null,
+        endDate: row.issueEndDate || null,
+      }));
+
+      const recentlyListed = (Array.isArray(past) ? past : [])
+        .filter((row) => row.listingDate && row.listingDate !== "-")
+        .slice(0, 20)
+        .map((row) => {
+          const issuePriceNum = Number(String(row.issuePrice || "").trim());
+          return {
+            company: row.company,
+            symbol: row.symbol,
+            securityType: row.securityType || null,
+            issuePrice: Number.isFinite(issuePriceNum) ? issuePriceNum : null,
+            priceBand: row.priceRange || null,
+            listingDate: row.listingDate,
+          };
+        });
+
+      res.set("Cache-Control", "public, max-age=120");
+      res.json({ asOf: new Date().toISOString(), openNow, upcoming: upcomingList, recentlyListed });
+    } catch (err) {
+      res.status(502).json({ error: err.message || "IPO data fetch failed" });
+    }
+  });
+});
+
 // Server-side counter for guest-mode entries — kept off the client so an
 // open Firestore write rule for anonymous users is never needed.
 const GUEST_COUNTER_REF = db.collection("counters").doc("guestLogins");

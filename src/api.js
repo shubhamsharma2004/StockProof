@@ -48,6 +48,21 @@ export async function fetchMarketNews() {
   }
 }
 
+export async function fetchIpoData() {
+  try {
+    const payload = await fetchWithTimeout(`${FUNCTIONS_BASE}/ipoData`);
+    return {
+      ok: true,
+      asOf: payload?.asOf || null,
+      openNow: Array.isArray(payload?.openNow) ? payload.openNow : [],
+      upcoming: Array.isArray(payload?.upcoming) ? payload.upcoming : [],
+      recentlyListed: Array.isArray(payload?.recentlyListed) ? payload.recentlyListed : [],
+    };
+  } catch (err) {
+    return { ok: false, error: err?.message || "IPO data request failed" };
+  }
+}
+
 export async function fetchGuestCount() {
   try {
     const payload = await fetchWithTimeout(`${FUNCTIONS_BASE}/guestCounter`);
@@ -142,8 +157,12 @@ const HISTORY_ARRAY_FIELDS = ["revenue_history", "net_income_history", "balance_
 function normalizeStockPayload(raw) {
   const out = {};
   for (const field of NUMERIC_FIELDS) {
-    const value = Number(raw?.[field]);
-    out[field] = Number.isFinite(value) ? value : null;
+    // Number(null) is 0, not NaN — a genuinely-missing field must short
+    // circuit to null here, or it silently becomes a fake real zero (e.g.
+    // "Current Price ₹0" for a stock we simply have no data for).
+    const raw_value = raw?.[field];
+    const value = raw_value == null ? null : Number(raw_value);
+    out[field] = value != null && Number.isFinite(value) ? value : null;
   }
   for (const field of STRING_FIELDS) {
     out[field] = raw?.[field] || null;
