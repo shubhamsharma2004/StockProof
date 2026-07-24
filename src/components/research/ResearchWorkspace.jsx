@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useHistory } from "../../hooks/useHistory.js";
+import { useNseEnrichment } from "../../hooks/useNseEnrichment.js";
+import { buildSymbol } from "../../api.js";
 import { computeCategoryScores } from "../../insights.js";
 import EmptyState from "./EmptyState.jsx";
 import Hero from "./Hero.jsx";
@@ -25,6 +27,7 @@ export default function ResearchWorkspace({ auth, stockData, watchlist }) {
   const [activeTab, setActiveTab] = useState("overview");
   const history = useHistory({ user: auth.user, isGuest: auth.isGuest });
   const { selected, fetchedData } = stockData;
+  const nse = useNseEnrichment(selected && stockData.dataSource === "live" ? buildSymbol(selected.symbol, selected.exchange) : null);
 
   if (!selected) {
     return <EmptyState guestCount={auth.guestCount} isGuest={auth.isGuest} stockData={stockData} />;
@@ -58,11 +61,11 @@ export default function ResearchWorkspace({ auth, stockData, watchlist }) {
 
       <div className="research-grid">
         <div className="research-main">
-          {activeTab === "overview" ? <OverviewTab stockData={stockData} categories={categories} /> : null}
-          {activeTab === "financials" ? <FinancialsTab stockData={stockData} /> : null}
+          {activeTab === "overview" ? <OverviewTab stockData={stockData} categories={categories} nse={nse} /> : null}
+          {activeTab === "financials" ? <FinancialsTab stockData={stockData} nse={nse} /> : null}
           {activeTab === "ratios" ? <RatiosTab stockData={stockData} /> : null}
-          {activeTab === "shareholding" ? <ShareholdingTab /> : null}
-          {activeTab === "peers" ? <PeersTab /> : null}
+          {activeTab === "shareholding" ? <ShareholdingTab nse={nse} /> : null}
+          {activeTab === "peers" ? <PeersTab stockData={stockData} /> : null}
         </div>
         <Sidebar stockData={stockData} categories={categories} history={history} auth={auth} />
       </div>

@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Saved evaluations and watchlist entries — a signed-in user can only
+    // read/write their own subtree. Everything else (guest counter,
+    // shareholding cache, NSE EPS cache) is only ever touched by the Admin
+    // SDK from Cloud Functions, which bypasses these rules entirely, so it
+    // deliberately has no client-facing rule here (default deny).
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

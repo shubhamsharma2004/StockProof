@@ -8,7 +8,7 @@ export default function Sidebar({ stockData, categories, history, auth }) {
   return (
     <aside className="research-sidebar" aria-label="Research progress">
       <ProgressCard stockData={stockData} />
-      <RecommendationCard categories={categories} onSave={() => history.saveCurrentEvaluation(stockData)} />
+      <RecommendationCard stockData={stockData} categories={categories} onSave={() => history.saveCurrentEvaluation(stockData)} />
       <FinalRecommendationCard stockData={stockData} categories={categories} />
       <HistoryCard history={history} onLoadEntry={stockData.loadFromHistoryEntry} />
       <InsightsCard user={auth.user} history={history.history} />

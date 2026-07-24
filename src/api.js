@@ -63,6 +63,48 @@ export async function fetchIpoData() {
   }
 }
 
+// Bare NSE symbol (no .NS/.BO suffix) — these two endpoints are keyed by
+// NSE's own regulatory-filing symbol, not the Yahoo-style suffixed one.
+function bareSymbol(symbolWithSuffix) {
+  return (symbolWithSuffix || "").replace(/\.(NS|BO)$/i, "").toUpperCase();
+}
+
+export async function fetchShareholding(symbolWithSuffix) {
+  try {
+    const payload = await fetchWithTimeout(
+      `${FUNCTIONS_BASE}/shareholding?symbol=${encodeURIComponent(bareSymbol(symbolWithSuffix))}`
+    );
+    if (!payload?.available) return { ok: true, available: false };
+    return {
+      ok: true,
+      available: true,
+      promoterPct: typeof payload.promoter_pct === "number" ? payload.promoter_pct : null,
+      publicPct: typeof payload.public_pct === "number" ? payload.public_pct : null,
+      quarterEnd: payload.quarter_end || null,
+      history: Array.isArray(payload.history) ? payload.history : [],
+    };
+  } catch (err) {
+    return { ok: false, error: err?.message || "Shareholding request failed" };
+  }
+}
+
+export async function fetchNseEps(symbolWithSuffix) {
+  try {
+    const payload = await fetchWithTimeout(`${FUNCTIONS_BASE}/nseEps?symbol=${encodeURIComponent(bareSymbol(symbolWithSuffix))}`);
+    if (!payload?.available) return { ok: true, available: false };
+    return {
+      ok: true,
+      available: true,
+      eps: typeof payload.eps === "number" ? payload.eps : null,
+      basis: payload.basis === "ttm" ? "ttm" : "quarterly",
+      periodEnd: payload.periodEnd || null,
+      stale: !!payload.stale,
+    };
+  } catch (err) {
+    return { ok: false, error: err?.message || "NSE EPS request failed" };
+  }
+}
+
 export async function fetchGuestCount() {
   try {
     const payload = await fetchWithTimeout(`${FUNCTIONS_BASE}/guestCounter`);

@@ -37,14 +37,19 @@ function FinalRecommendationBody({ stockData, categories, score }) {
         {rec.stars != null ? <span>({rec.stars.toFixed(1)}/5)</span> : null}
       </div>
       <p className="final-rec-label">{rec.investmentLabel}</p>
+      {rec.summary ? <p className="final-rec-summary">{rec.summary}</p> : null}
 
       {rec.reasons.length > 0 ? (
         <div className="final-rec-block">
           <h3>Reasons</h3>
           <ul className="final-rec-list final-rec-list--positive">
             {rec.reasons.map((r) => (
-              <li key={r}>
-                <IconCheckCircle width={14} height={14} /> {r}
+              <li key={r.label}>
+                <IconCheckCircle width={14} height={14} />
+                <span>
+                  <strong>{r.label}</strong>
+                  <span className="final-rec-proof">{r.proof}</span>
+                </span>
               </li>
             ))}
           </ul>
@@ -56,8 +61,12 @@ function FinalRecommendationBody({ stockData, categories, score }) {
           <h3>Watch Out</h3>
           <ul className="final-rec-list final-rec-list--warning">
             {rec.watchOuts.map((r) => (
-              <li key={r}>
-                <IconWarning width={14} height={14} /> {r}
+              <li key={r.label}>
+                <IconWarning width={14} height={14} />
+                <span>
+                  <strong>{r.label}</strong>
+                  <span className="final-rec-proof">{r.proof}</span>
+                </span>
               </li>
             ))}
           </ul>

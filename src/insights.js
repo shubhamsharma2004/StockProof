@@ -230,32 +230,113 @@ export function marketCapTier(marketCapCr) {
   return "Small Cap";
 }
 
+function n(value, digits = 2) {
+  return Number(value).toLocaleString("en-IN", { maximumFractionDigits: digits, minimumFractionDigits: 0 });
+}
+
+// Every strength/watch item carries the real number that triggered it,
+// written as a plain sentence a non-finance reader can act on — not just a
+// jargon term next to a threshold comparison. The number stays in the
+// sentence so it's still a traceable claim, not a vibe. Callers that only
+// need the short tag (e.g. the compact Hero chips) can just read `.label`;
+// callers showing the fuller cards should show `.proof` alongside it.
 export function computeStrengthsAndWatch(fd) {
   const strengths = [];
   const watch = [];
 
   if (fd.debt_to_equity != null) {
-    if (fd.debt_to_equity < 0.4) strengths.push("Low Debt");
-    else if (fd.debt_to_equity > 1) watch.push("High Debt");
+    if (fd.debt_to_equity < 0.4) {
+      strengths.push({
+        label: "Low Debt",
+        proof: `Debt-to-Equity is ${n(fd.debt_to_equity)} — this company runs mostly on its own money rather than borrowed money, so rising interest rates or a slow year are less likely to hurt it.`,
+      });
+    } else if (fd.debt_to_equity > 1) {
+      watch.push({
+        label: "High Debt",
+        proof: `Debt-to-Equity is ${n(fd.debt_to_equity)} — this company owes more than its own shareholders have put in, so it's more exposed if interest rates rise or profits dip.`,
+      });
+    }
   }
-  if (fd.return_on_equity != null && fd.return_on_equity > 15) strengths.push("Strong ROE");
+  if (fd.return_on_equity != null && fd.return_on_equity > 15) {
+    strengths.push({
+      label: "Strong ROE",
+      proof: `Return on Equity is ${n(fd.return_on_equity)}% — for every ₹100 shareholders have put in, the company is turning that into ₹${n(fd.return_on_equity)} of profit a year, a strong return.`,
+    });
+  }
   if (fd.profit_margin != null) {
-    if (fd.profit_margin > 15) strengths.push("Healthy Margins");
-    else if (fd.profit_margin <= 0) watch.push("Weak Margins");
+    if (fd.profit_margin > 15) {
+      strengths.push({
+        label: "Healthy Margins",
+        proof: `Net Profit Margin is ${n(fd.profit_margin)}% — out of every ₹100 in sales, about ₹${n(fd.profit_margin, 0)} ends up as actual profit, a healthy cut.`,
+      });
+    } else if (fd.profit_margin <= 0) {
+      watch.push({
+        label: "Weak Margins",
+        proof: `Net Profit Margin is ${n(fd.profit_margin)}% — the company is making little to no real profit on what it sells right now, or losing money on it.`,
+      });
+    }
   }
   if (fd.total_cash_cr != null && fd.total_debt_cr != null && fd.total_cash_cr > fd.total_debt_cr) {
-    strengths.push("High Cash Reserves");
+    strengths.push({
+      label: "High Cash Reserves",
+      proof: `The company holds ₹${n(fd.total_cash_cr, 0)} Cr in cash against ₹${n(fd.total_debt_cr, 0)} Cr it owes — more cash on hand than debt, a comfortable cushion if business slows.`,
+    });
   }
   if (fd.revenue_growth != null && fd.earnings_growth != null && fd.revenue_growth > 8 && fd.earnings_growth > 8) {
-    strengths.push("Consistent Growth");
+    strengths.push({
+      label: "Consistent Growth",
+      proof: `Sales grew ${n(fd.revenue_growth)}% and profit grew ${n(fd.earnings_growth)}% — both are climbing together, not just one propped up by cost-cutting.`,
+    });
   } else if (fd.revenue_growth != null && fd.revenue_growth < 5) {
-    watch.push("Slowing Growth");
+    watch.push({
+      label: "Slowing Growth",
+      proof: `Sales grew only ${n(fd.revenue_growth)}% — the business is expanding slowly, which can mean it's maturing or running into headwinds.`,
+    });
   }
-  if (fd.pe_ratio != null && fd.pe_ratio > 40) watch.push("Expensive Valuation");
-  if (fd.dividend_yield != null && fd.dividend_yield > 0.5 && fd.dividend_yield <= 6) strengths.push("Healthy Cash Flow");
-  if (fd.dividend_yield != null && fd.dividend_yield > 7) watch.push("Unusually High Yield");
+  if (fd.pe_ratio != null && fd.pe_ratio > 40) {
+    watch.push({
+      label: "Expensive Valuation",
+      proof: `The P/E ratio is ${n(fd.pe_ratio)} — you'd be paying ₹${n(fd.pe_ratio, 0)} for every ₹1 of current annual profit, a price that already assumes a lot of future growth.`,
+    });
+  }
+  if (fd.dividend_yield != null && fd.dividend_yield > 0.5 && fd.dividend_yield <= 6) {
+    strengths.push({
+      label: "Healthy Cash Flow",
+      proof: `The dividend yield is ${n(fd.dividend_yield)}% — the company pays shareholders a reasonable, sustainable-looking slice of profit in cash each year.`,
+    });
+  }
+  if (fd.dividend_yield != null && fd.dividend_yield > 7) {
+    watch.push({
+      label: "Unusually High Yield",
+      proof: `The dividend yield is ${n(fd.dividend_yield)}% — that's unusually high, and often means the share price has fallen a lot rather than the payout being extra generous. Worth checking why before assuming it's a bonus.`,
+    });
+  }
 
   return { strengths: strengths.slice(0, 4), watch: watch.slice(0, 4) };
+}
+
+// One plain-English sentence tying the label + confidence together for
+// someone without a finance background — deliberately phrased as "here's
+// what this means" rather than "here's what to do", since this tool scores
+// real data, it doesn't give investment advice.
+export function plainSummary(overall) {
+  if (overall.stars == null) {
+    return "There isn't enough live data yet to form a view on this one.";
+  }
+  const caveat =
+    overall.confidence === "Preliminary"
+      ? " You've only just started your own review, though — treat this as an early read, not a conclusion, until you've worked through more of the checklist below."
+      : overall.confidence === "Limited Data"
+        ? " Only partial data is available for this stock, so treat this as a rough read rather than the full picture."
+        : "";
+
+  if (overall.label === "Bullish") {
+    return `The real numbers here look strong overall — that's a reasonable starting point to dig deeper, not a signal to buy on its own.${caveat}`;
+  }
+  if (overall.label === "Bearish") {
+    return `Several real numbers here point to genuine concerns — that doesn't automatically mean avoid it, but it's worth understanding exactly why before going further.${caveat}`;
+  }
+  return `This one's mixed — some real strengths, some real concerns, without a strong signal either way. Worth a closer look before deciding.${caveat}`;
 }
 
 // With only 1-2 of the 4 categories available, a raw average can look
@@ -282,9 +363,21 @@ export function computeOverallRecommendation(categories) {
   return { stars, label, tone, confidence, confidenceCount: available.length, combined: Math.round(combined) };
 }
 
+// computeOverallRecommendation's confidence reflects how much real DATA is
+// available (4/4 categories populated), not how much of the checklist the
+// person viewing it has actually reviewed — those are different things, and
+// showing "High Confidence" next to a 0%-reviewed checklist reads as a
+// contradictory signal. This downgrades the label when checklist progress is
+// still low, regardless of how complete the underlying data is.
+export function applyResearchProgressToConfidence(overall, progressPercent) {
+  if (overall.stars == null) return overall;
+  if (progressPercent < 30) return { ...overall, confidence: "Preliminary" };
+  return overall;
+}
+
 export function buildFinalRecommendation(fd, categories, checklistPercent) {
   const { strengths, watch } = computeStrengthsAndWatch(fd);
-  const overall = computeOverallRecommendation(categories);
+  const overall = applyResearchProgressToConfidence(computeOverallRecommendation(categories), checklistPercent);
 
   const suitableFor = [];
   if (fd.dividend_yield != null && fd.dividend_yield > 1 && categories.risk.available && categories.risk.score >= 60) {
@@ -307,6 +400,7 @@ export function buildFinalRecommendation(fd, categories, checklistPercent) {
   return {
     ...overall,
     investmentLabel,
+    summary: plainSummary(overall),
     reasons: strengths,
     watchOuts: watch,
     suitableFor: [...new Set(suitableFor)].slice(0, 4),

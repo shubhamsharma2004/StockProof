@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   IconResearch,
   IconWatchlist,
@@ -185,17 +185,37 @@ function Topbar({ auth, stockData, theme, onToggleTheme, onOpenGuide, onOpenRail
 
 function AuthMenu({ auth }) {
   const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
   const initial = (auth.user?.email || "?").trim().charAt(0).toUpperCase();
 
+  // Click-outside-to-close, not onMouseLeave — the panel sits below the
+  // avatar with a small gap, so any wobble in the mouse path from button to
+  // "Sign out" was dismissing the menu before the click landed.
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
   return (
-    <div className="auth-menu">
+    <div className="auth-menu" ref={menuRef}>
       <button type="button" className="avatar-btn" onClick={() => setOpen((o) => !o)} aria-label="Account menu">
         <span className="avatar-circle">{initial}</span>
       </button>
       {open ? (
-        <div className="auth-menu-panel" onMouseLeave={() => setOpen(false)}>
+        <div className="auth-menu-panel">
           <p className="auth-menu-label" title={auth.user?.email}>{auth.user?.email}</p>
-          <button type="button" className="btn btn-ghost btn-sm btn-full" onClick={auth.signOut}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm btn-full"
+            onClick={() => {
+              setOpen(false);
+              auth.signOut();
+            }}
+          >
             Sign out
           </button>
         </div>

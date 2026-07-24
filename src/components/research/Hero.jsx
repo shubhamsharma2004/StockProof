@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { computeOverallRecommendation, computeStrengthsAndWatch, marketCapTier } from "../../insights.js";
+import { computeOverallRecommendation, applyResearchProgressToConfidence, computeStrengthsAndWatch, marketCapTier } from "../../insights.js";
+import { computeScore } from "../../checklistData.js";
 import { formatCurrency, formatMarketCap, formatDateTime, formatNumber } from "../../utils.js";
 import { companyLogoUrl } from "../../companyLogo.js";
 import StarRating from "../StarRating.jsx";
@@ -52,7 +53,8 @@ export default function Hero({ stockData, categories, watchlist }) {
     );
   }
 
-  const overall = computeOverallRecommendation(categories);
+  const progress = computeScore(stockData.checkedItems, stockData.mode);
+  const overall = applyResearchProgressToConfidence(computeOverallRecommendation(categories), progress.percent);
   const { strengths, watch } = computeStrengthsAndWatch(fd);
   const tier = marketCapTier(fd.market_cap);
 
@@ -140,8 +142,8 @@ export default function Hero({ stockData, categories, watchlist }) {
               <span className="hero-chip-row-label">Strengths</span>
               <div className="chip-group">
                 {strengths.map((s) => (
-                  <span className="chip chip--positive" key={s}>
-                    <IconCheckCircle width={14} height={14} /> {s}
+                  <span className="chip chip--positive" key={s.label} title={s.proof}>
+                    <IconCheckCircle width={14} height={14} /> {s.label}
                   </span>
                 ))}
               </div>
@@ -152,8 +154,8 @@ export default function Hero({ stockData, categories, watchlist }) {
               <span className="hero-chip-row-label">Things to Watch</span>
               <div className="chip-group">
                 {watch.map((s) => (
-                  <span className="chip chip--warning" key={s}>
-                    <IconWarning width={14} height={14} /> {s}
+                  <span className="chip chip--warning" key={s.label} title={s.proof}>
+                    <IconWarning width={14} height={14} /> {s.label}
                   </span>
                 ))}
               </div>

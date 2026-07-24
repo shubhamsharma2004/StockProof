@@ -816,6 +816,7 @@ main.guide-screen, .auth-screen {
 .snapshot-tile-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); }
 .snapshot-tile-value { font-weight: 700; font-size: 1.02rem; font-variant-numeric: tabular-nums; }
 .snapshot-tile-value.is-muted, .is-muted { color: var(--ink-faint); font-weight: 500; font-size: 0.86rem; }
+.snapshot-tile-source { font-size: 0.68rem; color: var(--ink-faint); }
 
 /* ---------------------------------------------------------------------
    Price chart
@@ -892,6 +893,27 @@ main.guide-screen, .auth-screen {
 .ratios-table-row:last-child { border-bottom: none; }
 .ratios-table-row span:nth-child(2) { font-weight: 700; font-variant-numeric: tabular-nums; }
 .trend-up { color: var(--success); }
+
+/* ---------------------------------------------------------------------
+   Peers table
+--------------------------------------------------------------------- */
+
+.peers-table-wrap { overflow-x: auto; }
+.peers-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; white-space: nowrap; }
+.peers-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--line-strong);
+  padding: 0 14px 10px 0;
+}
+.peers-table td { padding: 11px 14px 11px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.peers-table tr:last-child td { border-bottom: none; }
+.peers-row--self td { background: var(--bg-sunken); }
+.peers-row--self td:first-child { border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.tag--sm { font-size: 0.66rem; padding: 2px 8px; margin-left: 8px; }
 .trend-down { color: var(--danger); }
 
 /* ---------------------------------------------------------------------
@@ -1017,18 +1039,24 @@ main.guide-screen, .auth-screen {
 .recommendation-pill--neutral { background: var(--warning-soft); color: var(--warning); }
 .recommendation-pill--muted { background: var(--bg-sunken); color: var(--ink-faint); }
 .recommendation-pill .btn { margin-top: 4px; }
+.recommendation-why { display: flex; flex-direction: column; gap: 12px; margin: 14px 0; }
 .sidebar-card .btn + .btn { margin-top: 10px; }
 
 .final-recommendation-hint { font-size: 0.86rem; color: var(--ink-faint); line-height: 1.5; }
 .final-rec-rating-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--ink-soft); font-weight: 600; }
-.final-rec-label { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; margin-top: 6px; margin-bottom: 16px; }
+.final-rec-label { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; margin-top: 6px; margin-bottom: 4px; }
+.final-rec-summary { font-size: 0.86rem; color: var(--ink-soft); line-height: 1.5; margin-bottom: 16px; }
+.recommendation-summary { font-size: 0.84rem; color: var(--ink-soft); line-height: 1.5; margin: 12px 0 0; }
 .final-rec-block { margin-bottom: 14px; }
 .final-rec-block h3 { font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); margin-bottom: 8px; }
-.final-rec-list { display: flex; flex-direction: column; gap: 6px; }
-.final-rec-list li { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; }
+.final-rec-list { display: flex; flex-direction: column; gap: 12px; }
+.final-rec-list li { display: flex; align-items: flex-start; gap: 8px; font-size: 0.86rem; }
+.final-rec-list li > svg { margin-top: 2px; }
+.final-rec-list li > span { display: flex; flex-direction: column; gap: 2px; }
 .final-rec-list--positive li { color: var(--ink); }
 .final-rec-list--positive svg { color: var(--success); flex-shrink: 0; }
 .final-rec-list--warning svg { color: var(--warning); flex-shrink: 0; }
+.final-rec-proof { font-size: 0.78rem; font-weight: 400; color: var(--ink-faint); line-height: 1.4; }
 
 .history-status, .history-notice { font-size: 0.85rem; color: var(--ink-faint); }
 .history-notice { background: var(--gold-soft); color: var(--gold-strong); padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 12px; }

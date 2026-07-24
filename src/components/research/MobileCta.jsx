@@ -1,9 +1,9 @@
-import { computeOverallRecommendation } from "../../insights.js";
+import { computeOverallRecommendation, applyResearchProgressToConfidence } from "../../insights.js";
 import { computeScore } from "../../checklistData.js";
 
 export default function MobileCta({ stockData, categories, onSave }) {
-  const overall = computeOverallRecommendation(categories);
   const score = computeScore(stockData.checkedItems, stockData.mode);
+  const overall = applyResearchProgressToConfidence(computeOverallRecommendation(categories), score.percent);
 
   const scrollToChecklist = () => {
     document.getElementById("insight-checklist")?.scrollIntoView({ behavior: "smooth", block: "start" });

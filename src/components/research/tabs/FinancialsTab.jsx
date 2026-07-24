@@ -3,7 +3,7 @@ import { historyCAGR } from "../../../insights.js";
 import { formatCurrency, formatNumber } from "../../../utils.js";
 import { IconGrowth, IconHealth, IconValuation, IconShield } from "../../icons.jsx";
 
-export default function FinancialsTab({ stockData }) {
+export default function FinancialsTab({ stockData, nse }) {
   const fd = stockData.fetchedData || {};
   const revenueHistory = fd.revenue_history || [];
   const netIncomeHistory = fd.net_income_history || [];
@@ -15,7 +15,19 @@ export default function FinancialsTab({ stockData }) {
     fd.shares_outstanding > 0
       ? netIncomeHistory.map((r) => ({ year: r.year, value_cr: (r.value_cr * 1e7) / fd.shares_outstanding }))
       : [];
-  const latestEps = epsHistory[epsHistory.length - 1];
+
+  // The 5-year sparkline above still has to use the approximation (NSE's
+  // quarterly feed only covers ~5 quarters, not 5 years, so it can't replace
+  // that history) — but the single current-value figure can use the real
+  // reported NSE EPS when available, same as the Overview tab, so the two
+  // don't show two different numbers for the same thing.
+  const nseEps = nse?.eps;
+  const currentEps = nseEps?.eps ?? fd.earnings_per_share ?? null;
+  const currentEpsNote = nseEps?.eps != null
+    ? nseEps.basis === "ttm" ? "Reported (NSE, TTM)." : `Reported (NSE, single quarter ended ${nseEps.periodEnd || "—"}, not annualized).`
+    : fd.earnings_per_share != null
+      ? "Reported (Yahoo, TTM)."
+      : null;
 
   return (
     <div className="tab-panel">
@@ -40,10 +52,16 @@ export default function FinancialsTab({ stockData }) {
           <TrendCard
             label="EPS"
             icon={IconValuation}
-            currentValueLabel={fd.earnings_per_share != null ? formatCurrency(fd.earnings_per_share) : null}
+            currentValueLabel={currentEps != null ? formatCurrency(currentEps) : null}
             cagr={historyCAGR(epsHistory)}
             values={epsHistory.map((r) => r.value_cr)}
-            note={epsHistory.length > 1 ? "Approximate — derived from net profit ÷ current shares outstanding, not reported EPS history." : null}
+            note={
+              epsHistory.length > 1
+                ? [currentEpsNote, "5Y trend is approximate — derived from net profit ÷ current shares outstanding, not reported EPS history."]
+                    .filter(Boolean)
+                    .join(" ")
+                : currentEpsNote
+            }
           />
           <TrendCard
             label="Debt to Equity"

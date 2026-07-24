@@ -1,4 +1,5 @@
 const { onRequest } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const corsLib = require("cors")({ origin: true });
 const admin = require("firebase-admin");
 
@@ -469,6 +470,193 @@ exports.ipoData = onRequest({ region: REGION, invoker: "public" }, (req, res) =>
       res.json({ asOf: new Date().toISOString(), openNow, upcoming: upcomingList, recentlyListed });
     } catch (err) {
       res.status(502).json({ error: err.message || "IPO data fetch failed" });
+    }
+  });
+});
+
+// Shareholding pattern (Promoter % vs Public %) — real NSE regulatory
+// disclosure data, sourced from a single bulk endpoint covering every listed
+// company that (verified live) needs no session/cookie, unlike most of NSE's
+// site. Only the Promoter/Public split is available here; a further FII/DII
+// breakdown only exists in each company's linked XBRL filing, which would
+// need real XML parsing per company — a separate, much more fragile task,
+// intentionally not attempted here rather than guessed at.
+//
+// Refreshed on a weekly schedule (this data only changes quarterly, so
+// fetching it live per page view would be pure waste) into one Firestore
+// doc per symbol. Each refresh only appends a new history entry when the
+// filing's own quarter-end date has actually advanced, so quarter-over-
+// quarter change becomes available naturally over time rather than being
+// backfilled with invented history.
+const SHAREHOLDING_COLLECTION = "shareholding";
+
+async function refreshShareholdingData() {
+  const rows = await fetchNseJson("corporate-share-holdings-master?index=equities");
+  if (!Array.isArray(rows)) throw new Error("Unexpected shareholding master response shape");
+
+  let written = 0;
+  const chunks = [];
+  for (let i = 0; i < rows.length; i += 400) chunks.push(rows.slice(i, i + 400));
+
+  for (const chunk of chunks) {
+    const batch = db.batch();
+    for (const row of chunk) {
+      const symbol = (row.symbol || "").trim().toUpperCase();
+      const promoterPct = Number(row.pr_and_prgrp);
+      const publicPct = Number(row.public_val);
+      const quarterEnd = row.date || null;
+      if (!symbol || !quarterEnd || !Number.isFinite(promoterPct)) continue;
+
+      const ref = db.collection(SHAREHOLDING_COLLECTION).doc(symbol);
+      const entry = {
+        promoter_pct: promoterPct,
+        public_pct: Number.isFinite(publicPct) ? publicPct : null,
+        quarter_end: quarterEnd,
+        broadcast_date: row.broadcastDate || null,
+      };
+      // FieldValue.arrayUnion would dedupe on exact object equality (broadcast_date
+      // included), so a same-quarter re-run correctly writes nothing new here —
+      // only an actual new quarter grows the array.
+      batch.set(
+        ref,
+        {
+          ...entry,
+          history: admin.firestore.FieldValue.arrayUnion(entry),
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+      written++;
+    }
+    await batch.commit();
+  }
+  return written;
+}
+
+exports.shareholdingRefresh = onSchedule({ schedule: "every monday 03:00", region: REGION, timeoutSeconds: 300 }, async () => {
+  const count = await refreshShareholdingData();
+  console.log(`shareholdingRefresh: wrote ${count} symbols`);
+});
+
+// One-off manual trigger for the same refresh — used to seed the cache right
+// after deploy instead of waiting for the first Monday, and available if a
+// fresher pull is ever wanted without editing the schedule.
+exports.shareholdingRefreshNow = onRequest({ region: REGION, invoker: "public", timeoutSeconds: 300 }, (req, res) => {
+  corsLib(req, res, async () => {
+    try {
+      const count = await refreshShareholdingData();
+      res.json({ ok: true, symbolsWritten: count });
+    } catch (err) {
+      res.status(502).json({ error: err.message || "Shareholding refresh failed" });
+    }
+  });
+});
+
+exports.shareholding = onRequest({ region: REGION, invoker: "public" }, (req, res) => {
+  corsLib(req, res, async () => {
+    try {
+      const symbol = String(req.query.symbol || "").trim().toUpperCase();
+      if (!symbol) return res.status(400).json({ error: "symbol is required" });
+
+      const doc = await db.collection(SHAREHOLDING_COLLECTION).doc(symbol).get();
+      if (!doc.exists) return res.json({ available: false });
+
+      const data = doc.data();
+      const history = (data.history || []).slice().sort((a, b) => (a.quarter_end > b.quarter_end ? 1 : -1));
+
+      res.set("Cache-Control", "public, max-age=3600");
+      res.json({
+        available: true,
+        promoter_pct: data.promoter_pct,
+        public_pct: data.public_pct,
+        quarter_end: data.quarter_end,
+        history,
+      });
+    } catch (err) {
+      res.status(502).json({ error: err.message || "Shareholding lookup failed" });
+    }
+  });
+});
+
+// Real reported EPS from NSE's quarterly results filings — fills the gap
+// when Yahoo's trailingEps is missing for a symbol (common for Indian
+// stocks). Sums the four most recent quarters into a genuine trailing-
+// twelve-month figure when all four are reported; if that can't be
+// assembled, falls back to the single latest quarter with a label that
+// makes clear it isn't annualized, rather than silently understating it.
+// Cached per symbol in Firestore for a week since this only changes when a
+// company files new quarterly results — not on every page view. On a
+// failed live NSE fetch, a stale cached value is served rather than
+// nothing, since it's still real previously-reported data, not a guess.
+const NSE_EPS_COLLECTION = "nseFinancials";
+const NSE_EPS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function rowEps(row) {
+  const raw = row?.re_basic_eps ?? row?.re_basic_eps_for_cont_dic_opr;
+  const num = Number(raw);
+  return Number.isFinite(num) ? num : null;
+}
+
+async function fetchNseEpsLive(symbol) {
+  const data = await fetchNseJson(`results-comparision?symbol=${encodeURIComponent(symbol)}`);
+  const rows = Array.isArray(data?.resCmpData) ? data.resCmpData : [];
+  if (rows.length === 0) return null;
+
+  const latest = rows[0];
+  const last4 = rows.slice(0, 4).map(rowEps);
+  if (last4.length === 4 && last4.every((v) => v != null)) {
+    return {
+      eps: Number(last4.reduce((a, b) => a + b, 0).toFixed(2)),
+      basis: "ttm",
+      periodEnd: latest.re_to_dt || null,
+    };
+  }
+
+  const singleEps = rowEps(latest);
+  if (singleEps != null) {
+    return { eps: singleEps, basis: "quarterly", periodEnd: latest.re_to_dt || null };
+  }
+  return null;
+}
+
+exports.nseEps = onRequest({ region: REGION, invoker: "public" }, (req, res) => {
+  corsLib(req, res, async () => {
+    try {
+      const symbol = String(req.query.symbol || "").trim().toUpperCase().replace(/\.(NS|BO)$/i, "");
+      if (!symbol) return res.status(400).json({ error: "symbol is required" });
+
+      const ref = db.collection(NSE_EPS_COLLECTION).doc(symbol);
+      const cached = await ref.get();
+      const cachedData = cached.exists ? cached.data() : null;
+      const isFresh = cachedData && Date.now() - Date.parse(cachedData.updatedAt) < NSE_EPS_TTL_MS;
+      if (isFresh) {
+        res.set("Cache-Control", "public, max-age=3600");
+        return res.json({ available: true, ...cachedData.result });
+      }
+
+      let live = null;
+      for (let attempt = 0; attempt < 2 && live == null; attempt++) {
+        try {
+          live = await fetchNseEpsLive(symbol);
+        } catch {
+          live = null;
+        }
+      }
+
+      if (live) {
+        await ref.set({ result: live, updatedAt: new Date().toISOString() }, { merge: true });
+        res.set("Cache-Control", "public, max-age=3600");
+        return res.json({ available: true, ...live });
+      }
+
+      if (cachedData) {
+        // Live fetch failed but a stale real value exists — serve that
+        // rather than an empty state.
+        return res.json({ available: true, ...cachedData.result, stale: true });
+      }
+      return res.json({ available: false });
+    } catch (err) {
+      res.status(502).json({ error: err.message || "NSE EPS lookup failed" });
     }
   });
 });
