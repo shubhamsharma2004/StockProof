@@ -1,0 +1,25 @@
+/* Screener table; .screener-tabs / .screener-asof are reused by IPO + Markets. */
+
+
+.screener-table { display: flex; flex-direction: column; }
+.screener-table-head, .screener-row {
+  display: grid;
+  grid-template-columns: 1fr 110px 120px 100px 70px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 13px 0;
+}
+.screener-table-head { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); border-bottom: 1px solid var(--line-strong); }
+.screener-row { border-bottom: 1px solid var(--line); transition: background-color 0.15s; }
+.screener-row:last-child { border-bottom: none; }
+.screener-row:hover { background: var(--bg-sunken); }
+.screener-row-name { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.screener-row-name strong { font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .screener-table-head { display: none; }
+  .screener-row { grid-template-columns: 1fr auto auto; gap: 8px; }
+  .screener-row > span:nth-child(4), .screener-row > span:nth-child(5) { display: none; }
+}

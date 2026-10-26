@@ -1,0 +1,76 @@
+/* Sign-in modal. */
+
+.field-error { color: var(--danger); background: var(--danger-soft); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.85rem; margin-top: 10px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; color: var(--ink-faint); font-size: 0.8rem; margin: 20px 0 16px; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+/* ---------------------------------------------------------------------
+   Auth modal
+--------------------------------------------------------------------- */
+
+.auth-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+  animation: fade-in 0.2s ease;
+}
+
+.auth-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 32px 30px 28px;
+  box-shadow: var(--shadow-lg);
+  animation: fade-in-up 0.25s ease;
+}
+
+.auth-modal-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  display: flex; align-items: center; justify-content: center;
+}
+.auth-modal-close:hover { border-color: var(--danger); color: var(--danger); }
+
+.auth-modal-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+  font-size: 1.2rem;
+}
+
+.auth-modal-heading { font-size: 1.25rem; font-weight: 700; margin-bottom: 6px; }
+.auth-modal-subtitle { font-size: 0.85rem; color: var(--ink-soft); margin-bottom: 20px; line-height: 1.5; }
+
+.auth-modal-card form { display: flex; flex-direction: column; gap: 6px; }
+.auth-modal-card form label { font-size: 0.82rem; color: var(--ink-soft); margin-top: 10px; }
+.auth-modal-card form input {
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.auth-modal-card form input:focus-visible { border-color: var(--accent); }
+.auth-modal-card form button { margin-top: 16px; }
+.auth-modal-card > .link-btn { margin-top: 10px; }
+
+@media (max-width: 640px) {
+  .auth-modal-card { padding: 26px 20px 22px; }
+}

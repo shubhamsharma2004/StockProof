@@ -1,0 +1,215 @@
+/* ---------------------------------------------------------------------
+   App shell — white sidebar, white topbar, soft grey content canvas.
+--------------------------------------------------------------------- */
+
+.app-shell { display: flex; min-height: 100svh; }
+
+/* Sidebar */
+.sidebar {
+  width: var(--rail-width);
+  flex-shrink: 0;
+  background: var(--bg-rail);
+  border-right: 1px solid var(--line);
+  z-index: 50;
+}
+.sidebar-inner {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  padding: 30px 26px 24px;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: 1.4rem;
+  margin-bottom: 30px;
+}
+
+/* Dark summary card at the top of the sidebar */
+.pulse-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 22px;
+  border-radius: var(--radius-md);
+  background: var(--pulse-bg);
+  color: var(--pulse-ink);
+}
+.pulse-card-label { position: relative; font-size: 0.92rem; opacity: 0.85; }
+.pulse-card-row { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pulse-card-value { position: relative; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.pulse-card-value--muted { font-size: 1.15rem; opacity: 0.7; padding: 6px 0 2px; }
+.pulse-card-meta { position: relative; font-size: 0.76rem; opacity: 0.6; }
+.pulse-card-breadth { display: inline-flex; gap: 10px; font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pulse-card-breadth > span { display: inline-flex; align-items: center; gap: 2px; }
+.pulse-card-breadth .is-positive { color: #4ade80; }
+.pulse-card-breadth .is-negative { color: #ff7b7f; }
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 6px; margin-top: 30px; }
+.sidebar-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border-radius: 14px;
+  font-size: 1.02rem;
+  font-weight: 500;
+  color: var(--ink);
+  text-align: left;
+  transition: background-color 0.15s, color 0.15s;
+}
+.sidebar-item:hover { background: var(--bg-sunken); }
+.sidebar-item.is-active { background: var(--bg-sunken); font-weight: 600; }
+.sidebar-group-chevron { margin-left: auto; color: var(--ink-soft); transition: transform 0.2s ease; transform: rotate(-90deg); }
+.sidebar-group-chevron.is-open { transform: rotate(0deg); }
+
+.sidebar-subnav { display: flex; flex-direction: column; padding: 4px 0 6px 52px; }
+.sidebar-subitem {
+  width: 100%;
+  text-align: left;
+  padding: 9px 0;
+  font-size: 0.98rem;
+  color: var(--ink-soft);
+  transition: color 0.15s;
+}
+.sidebar-subitem:hover { color: var(--ink); }
+.sidebar-subitem.is-active { color: var(--ink); font-weight: 600; }
+
+.sidebar-nav--secondary {
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.switch {
+  position: relative;
+  margin-left: auto;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s;
+}
+.switch.is-on { background: var(--brand); }
+.switch.is-on::after { transform: translateX(16px); }
+
+/* Main column */
+.shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: var(--topbar-height);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 40px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-search { flex: 1; max-width: 460px; }
+.nav-toggle-btn { display: none; }
+.topbar-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; flex-shrink: 0; }
+.topbar-divider { width: 1px; height: 28px; background: var(--line-strong); margin: 0 6px; }
+
+.user-menu { position: relative; }
+.user-menu-trigger { display: flex; align-items: center; gap: 12px; padding: 4px; border-radius: 999px; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.avatar--initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 700;
+}
+.user-menu-name { font-size: 1.02rem; font-weight: 600; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-menu-chevron { color: var(--ink-soft); transition: transform 0.2s; }
+.user-menu-chevron.is-open { transform: rotate(180deg); }
+.user-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  width: 240px;
+  padding: 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 60;
+  animation: fade-in-up 0.15s ease;
+}
+.user-menu-email { font-size: 0.85rem; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 12px; }
+
+.shell-content {
+  flex: 1 0 auto;
+  width: 100%;
+  /* Fills the column on normal screens; on very wide ones it caps and
+     centres, so spare space is shared on both sides instead of piling up
+     on the right. */
+  max-width: 1760px;
+  margin: 0 auto;
+  padding: 34px 40px 56px;
+}
+
+
+.nav-scrim { display: none; }
+
+@media (max-width: 1180px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100svh;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+  .sidebar.is-open { transform: translateX(0); box-shadow: var(--shadow-lg); }
+  .nav-toggle-btn { display: inline-flex; }
+  .nav-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 45;
+    animation: fade-in 0.2s ease;
+  }
+  .topbar { padding: 0 24px; }
+  .shell-content { padding: 28px 24px 48px; }
+}
+
+@media (max-width: 640px) {
+  :root { --topbar-height: 68px; --rail-width: 284px; }
+  /* "Coming soon" bell gives its room to the search box on phones. */
+  .topbar-bell { display: none; }
+  .topbar { padding: 0 12px; gap: 8px; }
+  .topbar-divider, .user-menu-name { display: none; }
+  .user-menu-chevron { display: none; }
+  .shell-content { padding: 20px 16px 40px; }
+}

@@ -1,0 +1,147 @@
+/* Dashboard — movers strip, featured chart, watchlist column. */
+
+.dashboard { display: flex; flex-direction: column; gap: 22px; animation: fade-in 0.3s ease; }
+
+.dash-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.dash-title { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dash-title-market { font-size: 0.82rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--bg-elevated); color: var(--ink-soft); }
+
+.dash-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.dash-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dash-card-title { font-size: 1.25rem; font-weight: 700; }
+
+/* Movers strip */
+.movers-strip { position: relative; padding: 18px; }
+.movers-scroller {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 3 * 10px) / 4);
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  /* Room inside the scroll box so the raised active card's shadow isn't clipped. */
+  padding: 6px 6px 22px;
+  margin: -6px -6px -22px;
+  scroll-padding-left: 6px;
+}
+.movers-scroller::-webkit-scrollbar { display: none; }
+
+.mover-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  text-align: left;
+  scroll-snap-align: start;
+  transition: background-color 0.15s, box-shadow 0.2s;
+}
+.mover-card:hover { background: var(--bg-sunken); }
+.mover-card.is-active { background: var(--bg-elevated); box-shadow: 0 12px 32px -14px rgba(16, 24, 40, 0.28); }
+:root[data-theme="dark"] .mover-card.is-active { background: var(--bg-sunken); box-shadow: none; }
+.mover-card--skeleton { gap: 14px; }
+.mover-card-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mover-card-name { font-size: 1.08rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mover-card-spark { margin-left: auto; flex-shrink: 0; }
+.mover-card-stats { display: flex; flex-direction: column; gap: 10px; }
+.mover-card-stats > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mover-card-stats dt { color: var(--ink-soft); font-size: 0.92rem; }
+.mover-card-stats dd { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.movers-next {
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  color: var(--ink);
+}
+.movers-next:hover { background: var(--bg-sunken); }
+.movers-empty { padding: 24px 8px; color: var(--ink-faint); font-size: 0.9rem; }
+
+/* Featured chart + watchlist */
+.dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 24px;
+  align-items: start;
+}
+
+.featured-card { padding: 28px 32px 18px; min-width: 0; }
+.featured-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.featured-identity { min-width: 0; }
+.featured-identity h2 { font-size: 1.4rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.featured-identity span { color: var(--ink-soft); font-size: 0.95rem; }
+.featured-price { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.featured-price-row { display: flex; align-items: center; gap: 10px; }
+.featured-price-row strong { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.featured-price > span { font-size: 0.84rem; color: var(--ink-soft); }
+.featured-toolbar { padding: 22px 0 14px; }
+.featured-chart { min-height: 340px; }
+.featured-chart-skeleton { height: 330px; border-radius: var(--radius-md); }
+.featured-foot { display: flex; justify-content: flex-end; padding-top: 4px; }
+
+.watchlist-panel { padding: 26px 24px 12px; }
+.watchlist-panel .dash-card-head { padding: 0 6px 8px; }
+.watchlist-panel-list { display: flex; flex-direction: column; }
+.watchlist-panel-list li + li .watchlist-panel-row { border-top: 1px solid var(--line); }
+.watchlist-panel-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 6px;
+  text-align: left;
+  border-radius: 14px;
+  transition: background-color 0.15s;
+}
+.watchlist-panel-row:hover, .watchlist-panel-row.is-active { background: var(--bg-sunken); }
+.watchlist-panel-id { display: flex; flex-direction: column; min-width: 0; }
+.watchlist-panel-id strong { font-size: 1.04rem; font-weight: 600; }
+.watchlist-panel-id span { font-size: 0.9rem; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watchlist-panel-quote { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+.watchlist-panel-quote strong { font-size: 1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.watchlist-panel-quote .change-text { font-size: 0.9rem; }
+.watchlist-panel-unavailable { font-size: 0.8rem; color: var(--ink-faint); }
+.watchlist-panel-empty { padding: 12px 6px 20px; color: var(--ink-soft); font-size: 0.9rem; line-height: 1.5; }
+.watchlist-panel-empty p + p { margin-top: 6px; font-size: 0.84rem; color: var(--ink-faint); }
+
+@media (max-width: 1320px) {
+  .movers-scroller { grid-auto-columns: calc((100% - 2 * 10px) / 3); }
+  .dash-grid { grid-template-columns: minmax(0, 1fr) 340px; }
+}
+
+@media (max-width: 1040px) {
+  .dash-grid { grid-template-columns: 1fr; }
+  .movers-scroller { grid-auto-columns: calc((100% - 10px) / 2); }
+}
+
+@media (max-width: 640px) {
+  .movers-strip { padding: 10px; }
+  .movers-scroller { grid-auto-columns: 82%; }
+  .movers-next { display: none; }
+  .featured-card { padding: 20px 18px 12px; }
+  .featured-head { flex-wrap: wrap; }
+  .featured-price { margin-left: 0; width: 100%; align-items: flex-start; }
+  .featured-chart { min-height: 0; }
+}

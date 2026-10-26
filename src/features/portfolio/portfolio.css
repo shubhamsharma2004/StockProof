@@ -1,0 +1,51 @@
+/* Portfolio buy/sell scenario. */
+
+.portfolio-picker-card { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.scenario-field-label { font-size: 0.76rem; color: var(--ink-soft); font-weight: 600; }
+.portfolio-search { max-width: 100%; }
+
+.scenario-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px 16px;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.scenario-field { display: flex; flex-direction: column; gap: 6px; }
+.scenario-field label { font-size: 0.76rem; color: var(--ink-soft); font-weight: 600; }
+.scenario-field input {
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+.scenario-field input:focus-visible { border-color: var(--accent); }
+
+.scenario-note { font-size: 0.8rem; color: var(--gold-strong); background: var(--gold-soft); padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 14px; }
+
+.scenario-result-top { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.scenario-headline { display: flex; align-items: center; gap: 12px; }
+.scenario-headline strong { display: block; font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; }
+.scenario-headline span { font-size: 0.82rem; color: var(--ink-faint); }
+.scenario-headline.is-positive { color: var(--success); }
+.scenario-headline.is-negative { color: var(--danger); }
+
+.scenario-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 20px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.scenario-detail-grid > div { display: flex; flex-direction: column; gap: 3px; }
+
+.scenario-disclaimer { margin-top: 18px; font-size: 0.76rem; color: var(--ink-faint); line-height: 1.5; }
+
+@media (max-width: 640px) {
+  .scenario-result-top { flex-direction: column; align-items: flex-start; }
+}

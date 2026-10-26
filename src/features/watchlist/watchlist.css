@@ -1,0 +1,34 @@
+/* Watchlist page. */
+
+.watchlist-card { padding: 8px 24px; }
+.watchlist-table-head, .watchlist-row {
+  display: grid;
+  grid-template-columns: 1fr 120px 110px 32px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 0;
+}
+.watchlist-table-head { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); border-bottom: 1px solid var(--line-strong); }
+.watchlist-row { border-bottom: 1px solid var(--line); transition: background-color 0.15s; }
+.watchlist-row:last-child { border-bottom: none; }
+.watchlist-row:hover { background: var(--bg-sunken); }
+.watchlist-row-name { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+.watchlist-row-name-text { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.watchlist-row-name strong { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watchlist-row-remove {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-faint);
+  transition: background-color 0.15s, color 0.15s;
+}
+.watchlist-row-remove:hover { background: var(--danger-soft); color: var(--danger); }
+
+@media (max-width: 640px) {
+  .watchlist-table-head { display: none; }
+  .watchlist-row { grid-template-columns: 1fr auto auto 28px; gap: 8px; }
+}

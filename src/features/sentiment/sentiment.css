@@ -1,0 +1,57 @@
+/* AI headline sentiment — panel, mood bar, per-headline badges. */
+
+.sentiment-panel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+}
+.sentiment-panel--optin { background: var(--brand-soft); }
+.sentiment-panel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--brand-ink);
+  flex-shrink: 0;
+}
+.sentiment-panel-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.84rem; color: var(--ink-soft); line-height: 1.45; }
+.sentiment-panel-text strong { color: var(--ink); font-size: 0.92rem; }
+.sentiment-panel-headline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.sentiment-progress { height: 6px; border-radius: 999px; background: var(--line-strong); overflow: hidden; }
+.sentiment-progress > div { height: 100%; background: var(--brand); border-radius: 999px; transition: width 0.3s ease; }
+
+.sentiment-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; background: var(--line); }
+.sentiment-bar > span { height: 100%; transition: width 0.4s ease; }
+.sentiment-bar-positive { background: var(--success); }
+.sentiment-bar-neutral { background: var(--ink-faint); opacity: 0.5; }
+.sentiment-bar-negative { background: var(--danger); }
+
+.sentiment-disclaimer { font-size: 0.74rem; color: var(--ink-faint); }
+.sentiment-off { font-size: inherit; color: var(--ink-soft); text-decoration: underline; }
+.sentiment-off:hover { color: var(--ink); }
+
+.sentiment-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sentiment-badge--positive { background: var(--success-soft); color: var(--success); }
+.sentiment-badge--negative { background: var(--danger-soft); color: var(--danger); }
+.sentiment-badge--neutral { background: var(--bg-sunken); color: var(--ink-soft); }
+
+@media (max-width: 640px) {
+  .sentiment-panel { flex-wrap: wrap; }
+  .sentiment-panel--optin .btn { width: 100%; }
+}

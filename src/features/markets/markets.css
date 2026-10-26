@@ -1,0 +1,52 @@
+/* Market Overview — India indices, US quotes, world news. */
+
+.markets-stack { display: flex; flex-direction: column; gap: 20px; }
+
+.index-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-top: 14px; }
+.index-card { display: flex; flex-direction: column; gap: 14px; padding: 18px 20px; border-radius: var(--radius-md); background: var(--bg-sunken); }
+.index-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.index-card-name { font-weight: 600; }
+.index-card-bottom { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.index-card-level { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.market-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  font-size: 0.9rem;
+}
+.market-status--loading { color: var(--ink-faint); }
+.market-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  box-shadow: 0 0 0 4px var(--bg-sunken);
+}
+.market-status.is-open .market-status-dot { background: var(--success); box-shadow: 0 0 0 4px var(--success-soft); }
+.market-status-detail { color: var(--ink-soft); font-size: 0.84rem; }
+
+.us-quote-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 4px; }
+.us-quote-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+}
+.us-quote-top { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.us-quote-id { display: flex; flex-direction: column; min-width: 0; }
+.us-quote-id strong { font-size: 1rem; }
+.us-quote-id span { font-size: 0.8rem; color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.us-quote-bottom { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.us-quote-price { font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.us-quote-missing { font-size: 0.82rem; color: var(--ink-faint); }
+
+@media (max-width: 640px) {
+  .us-quote-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

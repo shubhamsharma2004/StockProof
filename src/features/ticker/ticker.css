@@ -1,0 +1,90 @@
+/* Scrolling price tape at the top of the shell. */
+
+.ticker {
+  display: flex;
+  align-items: stretch;
+  height: 42px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.ticker-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 0 40px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  border-right: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.ticker-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px var(--success-soft);
+}
+.ticker-dot.is-offline { background: var(--ink-faint); box-shadow: 0 0 0 3px var(--bg-sunken); }
+.ticker-status { display: flex; align-items: center; padding: 0 22px; font-size: 0.82rem; color: var(--ink-faint); }
+
+.ticker-viewport {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  /* Soft fade at both edges instead of a hard cut. */
+  mask-image: linear-gradient(90deg, transparent 0, #000 32px, #000 calc(100% - 32px), transparent 100%);
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  height: 100%;
+  animation: ticker-scroll var(--ticker-duration, 60s) linear infinite;
+}
+.ticker:hover .ticker-track,
+.ticker:focus-within .ticker-track { animation-play-state: paused; }
+
+.ticker-list { display: flex; align-items: center; }
+
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 22px;
+  font-size: 0.84rem;
+  white-space: nowrap;
+  border-right: 1px solid var(--line);
+  transition: background-color 0.15s;
+}
+.ticker-item:hover { background: var(--bg-sunken); }
+.ticker-item strong { font-weight: 700; }
+.ticker-price { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.ticker-item .change-text { font-size: 0.82rem; }
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* No motion for people who asked for none — the tape becomes a manual scroller. */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
+  .ticker-viewport { overflow-x: auto; scrollbar-width: none; }
+  .ticker-list + .ticker-list { display: none; }
+}
+
+@media (max-width: 1180px) {
+  .ticker-label { padding-left: 24px; }
+}
+
+@media (max-width: 640px) {
+  .ticker { height: 36px; }
+  .ticker-item { height: 36px; padding: 0 14px; font-size: 0.8rem; }
+  .ticker-label { padding: 0 12px; }
+}

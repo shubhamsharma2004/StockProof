@@ -1,0 +1,28 @@
+/* App-wide India ⇄ US switch (top bar). */
+
+.region-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  flex-shrink: 0;
+}
+.region-switch-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  transition: background-color 0.15s, color 0.15s;
+}
+.region-switch-option:hover { color: var(--ink); }
+.region-switch-option.is-active { background: var(--accent); color: var(--accent-contrast); }
+
+@media (max-width: 640px) {
+  .region-switch-option { padding: 6px 8px; }
+  .region-switch-label { display: none; }
+}

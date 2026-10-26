@@ -1,0 +1,126 @@
+/* Site footer — always dark (in both themes), with a faint grid and a
+   brand-green glow, like the hero of the Guide page. */
+
+.site-footer {
+  position: relative;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.62);
+  background-color: #071013;
+  /* 40px grid, faded out towards the bottom */
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 40px 40px;
+  border-top: 1px solid rgba(66, 245, 161, 0.12);
+}
+.site-footer::after {
+  /* fades the grid out towards the bottom edge */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 30%, #071013 100%);
+  pointer-events: none;
+}
+.site-footer-glow {
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  width: 720px;
+  height: 360px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(22, 199, 132, 0.18), transparent 65%);
+  pointer-events: none;
+}
+
+.site-footer-inner { position: relative; z-index: 1; padding: 36px 40px 18px; }
+
+.site-footer-top {
+  /* Brand on the left, the three link columns grouped on the right — fixed
+     gaps, so wide screens don't stretch the columns apart. */
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px 56px;
+  padding-bottom: 26px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.site-footer-brand { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; max-width: 380px; }
+.site-footer-links { display: flex; gap: 72px; }
+.site-footer-brand .brand-logo { font-size: 1.35rem; }
+.site-footer .brand-wordmark { color: #fff; }
+.site-footer .brand-wordmark-accent { color: #2fd69a; }
+.site-footer-brand p { font-size: 0.86rem; line-height: 1.55; }
+
+.site-footer-markets { display: flex; flex-wrap: wrap; gap: 8px; }
+.site-footer-markets span {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.site-footer-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(66, 245, 161, 0.12);
+  border: 1px solid rgba(66, 245, 161, 0.22);
+  color: #6ff0b4;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.site-footer-feedback:hover { background: rgba(66, 245, 161, 0.2); border-color: rgba(66, 245, 161, 0.4); }
+
+.site-footer-col h2 { color: #fff; font-size: 0.86rem; font-weight: 700; margin-bottom: 12px; }
+.site-footer-col ul { display: flex; flex-direction: column; gap: 8px; }
+.site-footer-col button {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.86rem;
+  text-align: left;
+  transition: color 0.15s;
+}
+.site-footer-col button:hover { color: #6ff0b4; }
+
+.site-footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  padding-top: 16px;
+  font-size: 0.78rem;
+}
+.site-footer-top-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+.site-footer-top-btn:hover { color: #6ff0b4; }
+
+@media (max-width: 1180px) {
+  .site-footer-inner { padding: 32px 24px 18px; }
+  .site-footer-links { gap: 48px; }
+}
+
+@media (max-width: 860px) {
+  .site-footer-top { flex-direction: column; }
+  .site-footer-brand { max-width: none; }
+}
+
+@media (max-width: 640px) {
+  .site-footer-inner { padding: 28px 16px 20px; }
+  .site-footer-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 20px; width: 100%; }
+  .site-footer-bottom { flex-direction: column; align-items: flex-start; }
+}
