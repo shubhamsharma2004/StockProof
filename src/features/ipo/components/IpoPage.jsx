@@ -1,14 +1,16 @@
-import { useState } from "react";
-import { useSelector } from "react-redux";
-import { selectRegion } from "../../ui/index.js";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { ipoMeta, ipoPath, navigateTo, PAGES, selectRegion, selectRouteParams, usePageMeta } from "../../ui/index.js";
 import { MARKET_KEYS } from "../../../shared/config/markets.js";
 import { formatDateTime } from "../../../shared/lib/format.js";
+import { showToast } from "../../../shared/lib/toast.js";
 import DataNotAvailable from "../../../shared/ui/DataNotAvailable.jsx";
 import PageHeader from "../../../shared/ui/PageHeader.jsx";
 import RangePills from "../../../shared/ui/RangePills.jsx";
 import Tabs from "../../../shared/ui/Tabs.jsx";
 import { IconResearch } from "../../../shared/ui/icons.jsx";
 import { useGetIposQuery } from "../api/ipoApi.js";
+import { useIpoBySlug } from "../hooks/useIpoBySlug.js";
 import IpoCard from "./IpoCard.jsx";
 import IpoDetailModal from "./IpoDetailModal.jsx";
 import UsIpoCalendar from "./UsIpoCalendar.jsx";
@@ -39,6 +41,7 @@ export default function IpoPage() {
 }
 
 function UsIpoPage() {
+  usePageMeta(PAGES.IPO);
   return (
     <div className="page-shell">
       <PageHeader
@@ -52,10 +55,27 @@ function UsIpoPage() {
 }
 
 function IndiaIpoPage() {
+  const dispatch = useDispatch();
   const [status, setStatus] = useState("open");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [selected, setSelected] = useState(null);
   const { currentData, isFetching, isError } = useGetIposQuery(status);
+
+  // The open IPO lives in the URL (/ipo/<slug>), so it can be shared and indexed.
+  const { slug } = useSelector(selectRouteParams);
+  const { ipo: selected, notFound } = useIpoBySlug(slug);
+  usePageMeta(PAGES.IPO, selected ? { ...ipoMeta(selected), path: ipoPath(selected) } : undefined);
+
+  // A link to one IPO opens on the tab it belongs to.
+  const selectedStatus = selected?.status;
+  useEffect(() => {
+    if (selectedStatus) setStatus(selectedStatus);
+  }, [selectedStatus]);
+
+  useEffect(() => {
+    if (!notFound) return;
+    showToast("That IPO is no longer in NSE's current lists.", "info");
+    dispatch(navigateTo(PAGES.IPO));
+  }, [notFound, dispatch]);
 
   const ipos = (currentData?.ipos || []).filter((i) => typeFilter === "all" || i.type === typeFilter);
 
@@ -98,13 +118,13 @@ function IndiaIpoPage() {
         ) : (
           <div className="ipo-card-grid">
             {ipos.map((ipo) => (
-              <IpoCard key={ipo.id} ipo={ipo} onOpen={setSelected} />
+              <IpoCard key={ipo.id} ipo={ipo} />
             ))}
           </div>
         )}
       </div>
 
-      {selected ? <IpoDetailModal ipo={selected} onClose={() => setSelected(null)} /> : null}
+      {selected ? <IpoDetailModal ipo={selected} onClose={() => dispatch(navigateTo(PAGES.IPO))} /> : null}
     </div>
   );
 }

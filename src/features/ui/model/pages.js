@@ -11,4 +11,4 @@ export const PAGES = {
 
 // Free to browse while signed out. Every other page opens the sign-in
 // popup instead of navigating.
-export const PUBLIC_PAGES = new Set([PAGES.DASHBOARD, PAGES.RESEARCH, PAGES.GUIDE]);
+export const PUBLIC_PAGES = new Set([PAGES.DASHBOARD, PAGES.RESEARCH, PAGES.IPO, PAGES.GUIDE]);

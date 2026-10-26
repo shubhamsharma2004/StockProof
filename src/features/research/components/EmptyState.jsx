@@ -1,7 +1,7 @@
-import { useDispatch, useSelector } from "react-redux";
-import { selectMarket } from "../../ui/index.js";
+import { useSelector } from "react-redux";
+import { selectMarket, stockPath } from "../../ui/index.js";
 import { IconResearch } from "../../../shared/ui/icons.jsx";
-import { openSecurity } from "../model/researchSlice.js";
+import Link from "../../../shared/ui/Link.jsx";
 
 const INTRO = {
   IN: "Search any NSE or BSE stock, ETF, or fund above to pull live figures and work through a structured research checklist — combining real data with your own judgment.",
@@ -9,7 +9,6 @@ const INTRO = {
 };
 
 export default function EmptyState() {
-  const dispatch = useDispatch();
   const market = useSelector(selectMarket);
   return (
     <div className="empty-state">
@@ -24,14 +23,9 @@ export default function EmptyState() {
           <span className="trending-picks-label">Popular {market.key === "US" ? "US" : "Indian"} large caps to get started</span>
           <div className="trending-picks-list">
             {market.popular.map((stock) => (
-              <button
-                type="button"
-                className="trending-pick-chip"
-                key={stock.symbol}
-                onClick={() => dispatch(openSecurity(stock))}
-              >
+              <Link className="trending-pick-chip" key={stock.symbol} to={stockPath(stock)}>
                 {stock.symbol}
-              </button>
+              </Link>
             ))}
           </div>
         </div>

@@ -1,12 +1,13 @@
 import { useDispatch, useSelector } from "react-redux";
 import { WatchlistPanel } from "../../watchlist/index.js";
-import { navigateTo, PAGES, selectMarket } from "../../ui/index.js";
+import { navigateTo, PAGES, selectMarket, usePageMeta } from "../../ui/index.js";
 import { featuredChanged, selectFeatured } from "../model/dashboardSlice.js";
 import { TOPBAR_SEARCH_ID } from "../../../shared/config/domIds.js";
 import FeaturedChartCard from "./FeaturedChartCard.jsx";
 import MoversStrip from "./MoversStrip.jsx";
 
 export default function DashboardPage() {
+  usePageMeta(PAGES.DASHBOARD);
   const dispatch = useDispatch();
   const featured = useSelector(selectFeatured);
   const market = useSelector(selectMarket);

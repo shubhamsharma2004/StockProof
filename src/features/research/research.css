@@ -39,6 +39,7 @@
   background: var(--bg-elevated);
   font-size: 0.85rem;
   font-weight: 600;
+  text-decoration: none;
   transition: border-color 0.15s, color 0.15s, transform 0.15s;
 }
 .trending-pick-chip:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }

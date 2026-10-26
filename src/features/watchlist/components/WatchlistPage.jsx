@@ -6,10 +6,11 @@ import DataNotAvailable from "../../../shared/ui/DataNotAvailable.jsx";
 import PageHeader from "../../../shared/ui/PageHeader.jsx";
 import { IconWatchlist, IconClose } from "../../../shared/ui/icons.jsx";
 import { selectWatchlistLoading, toggleWatchlist } from "../model/watchlistSlice.js";
-import { selectMarket } from "../../ui/index.js";
+import { PAGES, selectMarket, usePageMeta } from "../../ui/index.js";
 import { useWatchlistQuotes } from "../hooks/useWatchlistQuotes.js";
 
 export default function WatchlistPage() {
+  usePageMeta(PAGES.WATCHLIST);
   const dispatch = useDispatch();
   const loading = useSelector(selectWatchlistLoading);
   const rows = useWatchlistQuotes();

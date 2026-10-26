@@ -7,3 +7,7 @@ import { createAction } from "@reduxjs/toolkit";
 //
 // payload: { security: { symbol, name, exchange }, navigate?: boolean }
 export const securityRequested = createAction("app/securityRequested");
+
+// "Go to this URL" from an in-app link (shared/ui/Link.jsx); app/router.js
+// turns the path into the actions that open it. payload: pathname
+export const pathRequested = createAction("app/pathRequested");

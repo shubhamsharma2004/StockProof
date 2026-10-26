@@ -9,7 +9,7 @@ import { buildSymbol } from "../../../shared/lib/symbols.js";
 import { formatNumber, formatDate } from "../../../shared/lib/format.js";
 import { moneyFor } from "../../../shared/lib/money.js";
 import { MARKETS, marketOf } from "../../../shared/config/markets.js";
-import { selectMarket } from "../../ui/index.js";
+import { PAGES, selectMarket, usePageMeta } from "../../ui/index.js";
 import Sparkline from "../../../shared/ui/Sparkline.jsx";
 import DataNotAvailable from "../../../shared/ui/DataNotAvailable.jsx";
 import PageHeader from "../../../shared/ui/PageHeader.jsx";
@@ -17,6 +17,7 @@ import { IconPortfolio, IconTrendUp, IconTrendDown } from "../../../shared/ui/ic
 import { computeScenario, toDateInputValue } from "../lib/scenario.js";
 
 export default function PortfolioPage() {
+  usePageMeta(PAGES.PORTFOLIO);
   const dispatch = useDispatch();
   const selected = useSelector(selectSelected);
   const market = useSelector(selectMarket);

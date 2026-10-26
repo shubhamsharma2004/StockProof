@@ -1,3 +1,6 @@
+import { useEffect } from "react";
+import { useSelector } from "react-redux";
+import { PAGES, selectRouteParams, termSlug, usePageMeta } from "../../ui/index.js";
 import { markUrl } from "../../../shared/ui/BrandLogo.jsx";
 import {
   IconBook,
@@ -9,10 +12,11 @@ import {
   IconSparkle,
   IconStarFull,
   IconValuation,
-  IconWarning,
 } from "../../../shared/ui/icons.jsx";
 import { GLOSSARY, RATING_RULES, SCORES, SOURCES, STEPS } from "../lib/guideContent.js";
 import GlossaryExplorer from "./GlossaryExplorer.jsx";
+import GlossaryTermPage from "./GlossaryTermPage.jsx";
+import { GuideDisclaimer, SectionHead } from "./GuideParts.jsx";
 
 const SECTIONS = [
   { id: "guide-how", label: "How it works" },
@@ -26,17 +30,21 @@ const STEP_ICONS = [IconSearch, IconLayers, IconBook, IconStarFull];
 
 const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-function SectionHead({ eyebrow, title, subtitle }) {
-  return (
-    <header className="guide-head">
-      <span className="guide-eyebrow">{eyebrow}</span>
-      <h2>{title}</h2>
-      {subtitle ? <p>{subtitle}</p> : null}
-    </header>
-  );
+// /guide is the full guide; /guide/what-is-<term> is one glossary term.
+export default function GuidePage() {
+  const { term: slug } = useSelector(selectRouteParams);
+  const term = slug ? GLOSSARY.find((t) => termSlug(t.term) === slug) : null;
+  return term ? <GlossaryTermPage term={term} /> : <GuideOverview />;
 }
 
-export default function GuidePage() {
+function GuideOverview() {
+  usePageMeta(PAGES.GUIDE);
+
+  // Coming back from a term page stays on the Guide page, so the shell doesn't scroll.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, []);
+
   return (
     <div className="page-shell guide-page">
       <section className="guide-hero">
@@ -179,17 +187,7 @@ export default function GuidePage() {
         </div>
       </section>
 
-      <aside className="guide-disclaimer">
-        <IconWarning width={22} height={22} />
-        <div>
-          <strong>A research tool, not investment advice</strong>
-          <p>
-            Scores, ratings, sentiment and GMP are automated readings of public data to help you research — not
-            recommendations to buy, hold or sell. Always verify important figures with NSE, BSE, the SEC or your broker
-            before acting.
-          </p>
-        </div>
-      </aside>
+      <GuideDisclaimer />
     </div>
   );
 }

@@ -8,6 +8,8 @@ import { watchlistReducer } from "../features/watchlist/index.js";
 import { dashboardReducer } from "../features/dashboard/index.js";
 import { sentimentReducer } from "../features/sentiment/index.js";
 import { listenerMiddleware } from "./listeners.js";
+// Registers the URL ⇄ state listeners on the same middleware.
+import "./router.js";
 
 // Client state lives in feature slices; server data lives in RTK Query's
 // cache under `api`.

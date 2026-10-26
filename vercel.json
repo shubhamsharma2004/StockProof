@@ -1,4 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["bom1"]
+  "regions": ["bom1"],
+  "functions": {
+    "api/seo.js": { "includeFiles": "dist/index.html" }
+  },
+  "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/seo?kind=sitemap" },
+    { "source": "/robots.txt", "destination": "/api/seo?kind=robots" },
+    { "source": "/ipo/:slug", "destination": "/api/seo?kind=page&path=/ipo/:slug" },
+    { "source": "/stock/:symbol", "destination": "/api/seo?kind=page&path=/stock/:symbol" },
+    { "source": "/:exchange(bse|us)/stock/:symbol", "destination": "/api/seo?kind=page&path=/:exchange/stock/:symbol" },
+    { "source": "/guide/:term", "destination": "/api/seo?kind=page&path=/guide/:term" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
 }

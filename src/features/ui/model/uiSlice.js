@@ -31,6 +31,7 @@ const uiSlice = createSlice({
   initialState: () => ({
     theme: readInitialTheme(),
     page: PAGES.DASHBOARD,
+    params: {}, // page-specific route params: { slug } on IPO, { term } on Guide
     navOpen: false, // mobile drawer
     region: readInitialRegion(),
   }),
@@ -40,6 +41,13 @@ const uiSlice = createSlice({
     },
     pageChanged(state, action) {
       state.page = action.payload;
+      state.params = {};
+      state.navOpen = false;
+    },
+    // payload: { page, params }
+    routeChanged(state, action) {
+      state.page = action.payload.page;
+      state.params = action.payload.params || {};
       state.navOpen = false;
     },
     regionChanged(state, action) {
@@ -54,27 +62,31 @@ const uiSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(securityRequested, (state, action) => {
-      if (action.payload.navigate !== false) state.page = PAGES.RESEARCH;
+      if (action.payload.navigate !== false) {
+        state.page = PAGES.RESEARCH;
+        state.params = {};
+      }
     });
   },
 });
 
-export const { themeToggled, pageChanged, regionChanged, navOpened, navClosed } = uiSlice.actions;
+export const { themeToggled, pageChanged, routeChanged, regionChanged, navOpened, navClosed } = uiSlice.actions;
 export default uiSlice.reducer;
 
 // Gated navigation: a signed-out click on a private page opens the
 // sign-in popup instead of navigating.
-export const navigateTo = (page) => (dispatch, getState) => {
+export const navigateTo = (page, params = {}) => (dispatch, getState) => {
   if (!PUBLIC_PAGES.has(page) && !selectUser(getState())) {
     dispatch(navClosed());
     dispatch(authModalOpened());
     return;
   }
-  dispatch(pageChanged(page));
+  dispatch(routeChanged({ page, params }));
 };
 
 export const selectTheme = (state) => state.ui.theme;
 export const selectPage = (state) => state.ui.page;
+export const selectRouteParams = (state) => state.ui.params;
 export const selectNavOpen = (state) => state.ui.navOpen;
 export const selectRegion = (state) => state.ui.region;
 export const selectMarket = (state) => MARKETS[state.ui.region];

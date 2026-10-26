@@ -98,6 +98,8 @@ const researchSlice = createSlice({
         if (state.requestId !== action.meta.requestId) return;
         state.dataSource = "live";
         state.fetchedData = action.payload;
+        // Opened from a URL, only the symbol was known — take the quote's name.
+        if (state.selected.name === state.selected.symbol && action.payload?.long_name) state.selected.name = action.payload.long_name;
         state.fetchedAt = Date.now();
         state.requestId = null;
       })

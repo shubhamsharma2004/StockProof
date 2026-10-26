@@ -1,5 +1,5 @@
 import { useSelector } from "react-redux";
-import { selectRegion } from "../../ui/index.js";
+import { PAGES, selectRegion, usePageMeta } from "../../ui/index.js";
 import { MARKET_KEYS } from "../../../shared/config/markets.js";
 import PageHeader from "../../../shared/ui/PageHeader.jsx";
 import GlobalOverview from "./GlobalOverview.jsx";
@@ -11,6 +11,7 @@ const SUBTITLES = {
 };
 
 export default function MarketOverviewPage() {
+  usePageMeta(PAGES.MARKETS);
   const region = useSelector(selectRegion);
 
   return (

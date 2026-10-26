@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { termPath } from "../../ui/index.js";
 import { IconSearch } from "../../../shared/ui/icons.jsx";
+import Link from "../../../shared/ui/Link.jsx";
 import { GLOSSARY, GLOSSARY_CATEGORIES } from "../lib/guideContent.js";
 
 const ALL = "All";
@@ -45,7 +47,9 @@ export default function GlossaryExplorer() {
           {terms.map((t) => (
             <div className="glossary-card" key={t.term}>
               <dt>
-                <span className="glossary-term">{t.term}</span>
+                <Link className="glossary-term" to={termPath(t.term)}>
+                  {t.term}
+                </Link>
                 {t.full ? <span className="glossary-full">{t.full}</span> : null}
               </dt>
               <dd>{t.definition}</dd>

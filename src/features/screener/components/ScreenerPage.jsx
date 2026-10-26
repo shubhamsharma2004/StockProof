@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { selectRegion } from "../../ui/index.js";
+import { PAGES, selectRegion, usePageMeta } from "../../ui/index.js";
 import { MARKET_KEYS } from "../../../shared/config/markets.js";
 import { formatDateTime, formatVolume, formatVolumeIntl } from "../../../shared/lib/format.js";
 import { moneyFor } from "../../../shared/lib/money.js";
@@ -34,6 +34,7 @@ const MARKETS = {
 };
 
 export default function ScreenerPage() {
+  usePageMeta(PAGES.SCREENER);
   const dispatch = useDispatch();
   const region = useSelector(selectRegion);
   const market = MARKETS[region];

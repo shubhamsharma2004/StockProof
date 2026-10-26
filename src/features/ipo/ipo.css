@@ -12,6 +12,7 @@
   flex-direction: column;
   gap: 14px;
   text-align: left;
+  text-decoration: none;
   padding: 18px;
   border-radius: var(--radius-md);
   background: var(--bg-sunken);

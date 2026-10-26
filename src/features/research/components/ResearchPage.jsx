@@ -1,5 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 import Tabs from "../../../shared/ui/Tabs.jsx";
+import { PAGES, stockMeta, stockPath, usePageMeta } from "../../ui/index.js";
 import { selectionCleared, tabChanged } from "../model/researchSlice.js";
 import { selectActiveTab, selectDataSource, selectIsIndian, selectSelected } from "../model/selectors.js";
 import EmptyState from "./EmptyState.jsx";
@@ -28,6 +29,8 @@ export default function ResearchPage() {
   const dataSource = useSelector(selectDataSource);
   const activeTab = useSelector(selectActiveTab);
   const isIndian = useSelector(selectIsIndian);
+  const hasStockUrl = selected && selected.symbol !== "MANUAL";
+  usePageMeta(PAGES.RESEARCH, hasStockUrl ? { ...stockMeta(selected), path: stockPath(selected) } : undefined);
 
   if (!selected) return <EmptyState />;
 

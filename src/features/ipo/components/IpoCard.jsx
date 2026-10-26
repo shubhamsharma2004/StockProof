@@ -1,7 +1,9 @@
 import { computeCategoryScores, computeOverallRecommendation } from "../../research/index.js";
 import { formatCurrency, formatDate, formatNumber } from "../../../shared/lib/format.js";
 import CompanyLogo from "../../../shared/ui/CompanyLogo.jsx";
+import Link from "../../../shared/ui/Link.jsx";
 import StarRating from "../../../shared/ui/StarRating.jsx";
+import { ipoPath } from "../../ui/index.js";
 import { useGetListedQuoteQuery } from "../api/ipoApi.js";
 import { formatPriceRange, relativeDay, TYPE_LABELS } from "../lib/ipoFormat.js";
 import { formatSubscriptionTimes, subscriptionStrength } from "../lib/ipoInsights.js";
@@ -20,12 +22,12 @@ const withRelative = (iso) => (iso ? `${formatDate(iso)} (${relativeDay(iso)})` 
 
 // The one card used on every tab; which facts it shows depends on the
 // IPO's stage (open → subscription, upcoming → dates, listed → returns).
-export default function IpoCard({ ipo, onOpen }) {
+export default function IpoCard({ ipo }) {
   const strength = subscriptionStrength(ipo.timesSubscribed);
   const preListing = ipo.status !== "listed";
 
   return (
-    <button type="button" className="ipo-card" onClick={() => onOpen(ipo)}>
+    <Link className="ipo-card" to={ipoPath(ipo)}>
       <div className="ipo-card-top">
         <CompanyLogo symbol={ipo.symbol || ipo.name} size={44} />
         <div className="ipo-card-id">
@@ -55,7 +57,7 @@ export default function IpoCard({ ipo, onOpen }) {
           <GmpBadge symbol={ipo.symbol} priceRange={ipo.priceRange} />
         </div>
       ) : null}
-    </button>
+    </Link>
   );
 }
 
